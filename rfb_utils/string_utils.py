@@ -195,7 +195,7 @@ def update_blender_tokens_cb(bl_scene):
     from ..rman_config import __RFB_CONFIG_DICT__ as rfb_config
 
     scene = bl_scene
-    if not scene:
+    if not scene or not isinstance(scene, bpy.types.Scene):
         scene = bpy.context.scene
 
     global __SCENE_STRING_CONVERTER__
