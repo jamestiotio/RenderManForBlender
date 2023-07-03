@@ -89,8 +89,6 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        if context.object.type in ['LIGHT']:
-            return False
         return (context.object and rd.engine in {'PRMAN_RENDER'})
 
     def draw_item(self, layout, context, item):
