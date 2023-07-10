@@ -261,7 +261,7 @@ class PRMAN_OT_save_asset_base(bpy.types.Operator):
     asset_type: EnumProperty(
         items=[
             ('ENV', 'ENV', ''),
-            ('LIGHRIG', 'LIGHTRIG', ''),
+            ('LIGHTRIG', 'LIGHTRIG', ''),
             ('MATERIAL', 'MATERIAL', '')
         ]
     )   
