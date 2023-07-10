@@ -1180,7 +1180,10 @@ def import_light_rig(Asset):
         elif nodeClass == 'lightfilter':
             bpy.ops.object.rman_add_light_filter(rman_lightfilter_name=nodeType, add_to_selected=False)
 
-        light = bpy.context.active_object
+        try:
+            light = bpy.context.active_object
+        except:
+            light = bpy.context.view_layer.objects.active
         nt = light.data.node_tree
 
         light.name = nodeId
