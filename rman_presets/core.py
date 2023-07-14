@@ -19,6 +19,7 @@ from ..rfb_utils.property_utils import __GAINS_TO_ENABLE__, __LOBES_ENABLE_PARAM
 from ..rfb_logger import rfb_log
 from ..rman_bl_nodes import __BL_NODES_MAP__, __RMAN_NODE_TYPES__
 from ..rman_constants import RMAN_STYLIZED_FILTERS, RFB_FLOAT3, CYCLES_NODE_MAP, RMAN_SUPPORTED_VERSION_STRING
+from ..rman_constants import RFB_ASSET_VERSION_KEY, RFB_ASSET_VERSION
 from ..rfb_utils.shadergraph_utils import RmanConvertNode
 
 import rman_utils.rman_assets.lib as ral
@@ -699,6 +700,21 @@ def export_light_rig(obs, Asset):
                         externalosl=False)
 
         mtx = ob.matrix_world
+
+        # Make sure we export the light as Y-up
+        if nodeType in ['PxrDomeLight', 'PxrEnvDayLight']:
+            # for dome and envdaylight, flip the Z and Y rotation axes
+            # and ignore scale and translations
+            euler = mtx.to_euler('XYZ')
+            tmp = euler.y
+            euler.y = euler.z
+            euler.z = tmp
+            mtx = mathutils.Matrix.Identity(4) @ euler.to_matrix().to_4x4()            
+        else:
+            # for other lights, rotate on the X-axis
+            zup_to_yup = mathutils.Matrix.Rotation(radians(-90.0), 4, 'X')
+            mtx = zup_to_yup @ mtx
+
         floatVals = list()
         floatVals = transform_utils.convert_matrix(mtx)
         Asset.addNodeTransform(nodeName, floatVals )
@@ -1155,6 +1171,17 @@ def import_light_rig(Asset):
     portallight_nodes = dict()
 
     curr_x = 250
+    try:
+        cdata = Asset._assetData['compatibility']
+        asset_version = Asset.getMetadata(RFB_ASSET_VERSION_KEY)
+        do_rotate = True
+        if asset_version is None and cdata['host']['name'] == 'Blender':
+            # version 1.0 of light rigs from Blender doesn't need the Y-up to Z-up rotation
+            do_rotate = False
+    except Exception as e:
+        rfb_log().error("Error determining compatibility: %s" % e)
+
+
     for node in Asset.nodeList():
         nodeId = node.name()
         nodeType = node.type()
@@ -1218,25 +1245,21 @@ def import_light_rig(Asset):
 
                 # rotation
                 light.rotation_euler = (radians(vals[3]), radians(vals[4]), radians(vals[5]))
-
-        try:
-            cdata = Asset._assetData['compatibility']
-            if cdata['host']['name'] != 'Blender':            
-                if nodeType not in ['PxrDomeLight', 'PxrEnvDayLight']:
-                    # assume that if a lightrig did not come from Blender,
-                    # we need convert from Y-up to Z-up
-                    yup_to_zup = mathutils.Matrix.Rotation(radians(90.0), 4, 'X')
-                    light.matrix_world = yup_to_zup @ light.matrix_world
-                else:
-                    # for dome and envdaylight, flip the Y and Z rotation axes
-                    # and ignore scale and translations
-                    euler = light.matrix_world.to_euler('XYZ')
-                    tmp = euler.y
-                    euler.y = euler.z
-                    euler.z = tmp
-                    light.matrix_world = mathutils.Matrix.Identity(4) @ euler.to_matrix().to_4x4()
-        except:
-            pass   
+                
+        if do_rotate:     
+            # we need to rotate the lights to Z-up
+            if nodeType in ['PxrDomeLight', 'PxrEnvDayLight']:
+                # for dome and envdaylight, flip the Y and Z rotation axes
+                # and ignore scale and translations
+                euler = light.matrix_world.to_euler('XYZ')
+                tmp = euler.y
+                euler.y = euler.z
+                euler.z = tmp
+                light.matrix_world = mathutils.Matrix.Identity(4) @ euler.to_matrix().to_4x4()
+            else:                    
+                # for other lights, rotate on the X-axis
+                yup_to_zup = mathutils.Matrix.Rotation(radians(90.0), 4, 'X')
+                light.matrix_world = yup_to_zup @ light.matrix_world
 
         if bpy.context.view_layer.objects.active:
             bpy.context.view_layer.objects.active.select_set(False)                 
@@ -1463,6 +1486,9 @@ def export_asset(nodes, atype, infodict, category, cfg, renderPreview='std',
         if k == 'label':
             continue
         Asset.addMetadata(k, v)
+
+    # add version
+    Asset.addMetadata(RFB_ASSET_VERSION_KEY, RFB_ASSET_VERSION)
 
     # Compatibility data
     # This will help other application decide if they can use this asset.

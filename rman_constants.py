@@ -56,6 +56,14 @@ RFB_HELP_URL = "https://rmanwiki.pixar.com/display/RFB%s" % RMAN_SUPPORTED_VERSI
 RFB_FLOAT3 = ['color', 'point', 'vector', 'normal']
 RFB_FLOATX = ['color', 'point', 'vector', 'normal', 'matrix']
 
+# 
+# Version for the preset browser asset
+#
+# 1.0: no version 
+# 2.0: added version key, export all light rigs as Y-up
+RFB_ASSET_VERSION_KEY = '__rman_asset_version__'
+RFB_ASSET_VERSION = 2.0
+
 RMAN_STYLIZED_FILTERS = [
     "PxrStylizedHatching",
     "PxrStylizedLines",
