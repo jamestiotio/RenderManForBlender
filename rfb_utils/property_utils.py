@@ -568,7 +568,7 @@ def set_pxrosl_params(node, rman_sg_node, params, ob=None, mat_name=None):
             param_type = prop_type
             param_name = input_name
 
-            val = get_output_param_str(from_socket.node, mat_name, from_socket, to_socket, param_type)
+            val = get_output_param_str(rman_sg_node, from_socket.node, mat_name, from_socket, to_socket, param_type)
             if val:
                 set_rix_param(params, param_type, param_name, val, is_reference=True)    
 
