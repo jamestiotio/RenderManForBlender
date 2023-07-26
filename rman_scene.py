@@ -1139,8 +1139,6 @@ class RmanScene(object):
                 if params['denoise']:
                     anyDenoise = True
                     break
-            if anyDenoise:
-                options.SetString(self.rman.Tokens.Rix.k_hider_pixelfiltermode, 'importance')
 
         self.sg_scene.SetOptions(options)
 
