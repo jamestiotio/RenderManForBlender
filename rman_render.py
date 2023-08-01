@@ -1074,7 +1074,7 @@ class RmanRender(object):
         scene_utils.set_render_variant_config(self.bl_scene, config, render_config)
         self.rman_is_xpu = (rendervariant == 'xpu')
         if self.rman_is_xpu:
-            self.xpu_slow_mode = envconfig().getenv('RFB_XPU_SLOW_MODE', default=False)
+            self.xpu_slow_mode = int(envconfig().getenv('RFB_XPU_SLOW_MODE', default=1))
 
         self.sg_scene = self.sgmngr.CreateScene(config, render_config, self.stats_mgr.rman_stats_session) 
 
