@@ -305,7 +305,7 @@ class BlRenderResultHelper:
     def register_passes(self):
         self.render = self.rman_render.rman_scene.bl_scene.render
         self.render_view = self.rman_render.bl_engine.active_view_get()
-        self.image_scale = self.render.resolution_percentage / 100.0
+        self.image_scale = self.render.resolution_percentage * 0.01
         self.width = int(self.render.resolution_x * self.image_scale)
         self.height = int(self.render.resolution_y * self.image_scale)
 
@@ -337,9 +337,21 @@ class BlRenderResultHelper:
 
         self.size_x = self.width
         self.size_y = self.height
-        if self.render.use_border:
-            self.size_x = int(self.width * (self.render.border_max_x - self.render.border_min_x))
-            self.size_y = int(self.height * (self.render.border_max_y - self.render.border_min_y))     
+        if self.render.use_border: 
+            start_x = 0
+            end_x = self.width
+            start_y = 0
+            end_y = self.height            
+            if self.render.border_min_y > 0.0:
+                start_y = round(self.height * self.render.border_min_y)-1
+            if self.render.border_max_y > 0.0:                        
+                end_y = round(self.height * self.render.border_max_y)-1 
+            if self.render.border_min_x > 0.0:
+                start_x = round(self.width * self.render.border_min_x)-1
+            if self.render.border_max_x < 1.0:
+                end_x = round(self.width * self.render.border_max_x)-2
+            self.size_x = end_x - start_x
+            self.size_y = end_y - start_y
 
         self.bl_result = self.rman_render.bl_engine.begin_result(0, 0,
                                     self.size_x,
