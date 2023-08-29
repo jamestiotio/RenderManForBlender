@@ -172,6 +172,21 @@ def prototype_key(ob):
             else:
                 return '%s-OBJECT' % ob.object.name_full
         if ob.object.data:
+            use_gpu_subdiv = getattr(bpy.context.preferences.system, 'use_gpu_subdivision', False)
+            if isinstance(ob.object.data, bpy.types.Mesh) and use_gpu_subdiv:
+                '''
+                Blender 3.1 added a new use gpu acceleration for subdivs:
+
+                https://wiki.blender.org/wiki/Reference/Release_Notes/3.1/Modeling
+
+                Unfortunately, this seems to cause all objects with the subdiv modifier to use the same
+                name for their data property (Mesh). For now, if the option is turned on use
+                the object name.
+
+                We can remove this once this gets fixed in Blender: 
+                https://projects.blender.org/blender/blender/issues/111393
+                '''
+                return '%s-DATA' % ob.object.original.name_full
             return '%s-DATA' % ob.object.data.name_full
         return '%s-OBJECT' % ob.object.original.name_full
     elif ob.data:
