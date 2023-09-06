@@ -1104,18 +1104,7 @@
                 "conditionalVisPath": "use_metadata",
                 "conditionalVisValue": "1"
             }                       
-        },                        
-        {
-            "panel": "RENDER_PT_renderman_advanced_settings",
-            "page": "",
-            "name": "use_statistics",
-            "riopt": "statistics:level",
-            "label": "Enable Statistics",
-            "type": "int",
-            "default": 0,
-            "widget": "checkbox",
-            "help": "Enable writing an XML statistics file. The location for the XML file can be specified in the workspace editor."
-        },      
+        },                         
         {
             "panel": "RENDER_PT_renderman_advanced_settings",
             "page": "LPE Lobe Mappings",
@@ -1337,6 +1326,32 @@
             "help": ""
         },      
         {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Deprecated",
+            "name": "use_statistics",
+            "riopt": "statistics:level",
+            "label": "Enable Statistics",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "(LEGACY, use json filename in workspace) Enable statistics. Statistics is written to a JSON file. The location for the JSON file can be specified in the workspace editor."
+        },        
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Deprecated",
+            "name": "statistics_xmlfilename",
+            "riopt": "statistics:xmlfilename",
+            "label": "XML Filename",
+            "type": "string",
+            "widget": "fileinput",
+            "default": "<OUT>/stats.<F4>.xml",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "use_statistics",
+                "conditionalVisValue": "1"
+            }                      
+        },              
+        {
             "panel": "RENDER_PT_renderman_workspace",
             "page": "",
             "name": "root_path_output",
@@ -1379,13 +1394,14 @@
         {
             "panel": "RENDER_PT_renderman_workspace",
             "page": "",
-            "name": "statistics_xmlfilename",
-            "riopt": "statistics:xmlfilename",
-            "label": "XML Filename",
+            "name": "statistics_jsonFilename",
+            "riopt": "statistics:jsonFilename",
+            "label": "Stats JSON Filename",
             "type": "string",
             "widget": "fileinput",
-            "default": "<OUT>/stats.<F4>.xml"
-        },        
+            "default": "<OUT>/stats.<F4>.json",
+            "help": "File name for raw statistics JSON report. Setting this file name will trigger the creation of a default JSON Report listener to write out all diagnostic data from the stats system to a JSON file. When left blank, fall back to JSON report listener in the configuration file if specified otherwise JSON report is disabled."               
+        },                
         {
             "panel": "RENDER_PT_renderman_workspace",
             "page": "",

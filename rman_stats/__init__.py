@@ -181,6 +181,10 @@ class RfBStatsManager(object):
         if rman_stats_config_path:
             if os.path.exists(os.path.join(rman_stats_config_path, 'stats.ini')):
                 self.rman_stats_session_config.LoadConfigFile(rman_stats_config_path, 'stats.ini')
+
+        # add listener plugin path
+        listenerPath = os.path.join(os.environ.get("RMANTREE"), "lib/plugins/listeners")
+        rman.Stats.SetListenerPluginSearchPath(listenerPath)
                           
         # do this once at startup
         self.web_socket_server_id = 'rfb_statsserver_' + getpass.getuser() + '_' + str(os.getpid())
