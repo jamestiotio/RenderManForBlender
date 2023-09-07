@@ -511,7 +511,32 @@ class RmanSceneSync(object):
                     rman_update = RmanUpdate()
                     rman_update.is_updated_shading = dps_update.is_updated_shading
                     rman_update.is_updated_transform = dps_update.is_updated_transform   
-                    self.rman_updates[o.original] = rman_update             
+                    self.rman_updates[o.original] = rman_update    
+
+    def update_shader_nodetree(self, id):
+        users = self.rman_scene.context.blend_data.user_map(subset={id})
+        for o in users[id]:
+            if self.rman_scene.is_interactive:
+                if hasattr(o, 'rman_nodetree'):
+                    o.rman_nodetree.update_tag()
+                elif isinstance(o, bpy.types.Material):
+                    self.update_material(o)                         
+                elif isinstance(o, bpy.types.Light):                    
+                    self.check_light_datablock(o)
+                elif isinstance(o, bpy.types.ShaderNodeTree):
+                    # this is another shader node tree
+                    # presumbably it's a group node
+                    # just recurse
+                    self.update_shader_nodetree(o)
+                elif hasattr(o, 'node_tree'):
+                    o.node_tree.update_tag()                         
+            else:
+                if isinstance(o, bpy.types.Light):
+                    self.check_light_datablock(o)
+                elif isinstance(o, bpy.types.Material):
+                    rman_update = RmanUpdate()
+                    self.rman_updates[o.original] = rman_update                
+
 
     def check_shader_nodetree(self, dps_update):
         if dps_update.id.name in bpy.data.node_groups:
@@ -522,23 +547,7 @@ class RmanSceneSync(object):
             # this is one of our fake node groups with ramps
             # update all of the users of this node tree
             rfb_log().debug("ShaderNodeTree updated: %s" % dps_update.id.name)
-            users = self.rman_scene.context.blend_data.user_map(subset={dps_update.id.original})
-            for o in users[dps_update.id.original]:
-                if self.rman_scene.is_interactive:
-                    if hasattr(o, 'rman_nodetree'):
-                        o.rman_nodetree.update_tag()
-                    elif isinstance(o, bpy.types.Material):
-                        self.update_material(o)                         
-                    elif isinstance(o, bpy.types.Light):                    
-                        self.check_light_datablock(o)
-                    elif hasattr(o, 'node_tree'):
-                        o.node_tree.update_tag()                         
-                else:
-                    if isinstance(o, bpy.types.Light):
-                        self.check_light_datablock(o)
-                    elif isinstance(o, bpy.types.Material):
-                        rman_update = RmanUpdate()
-                        self.rman_updates[o.original] = rman_update        
+            self.update_shader_nodetree(dps_update.id.original)
 
     @time_this
     def batch_update_scene(self, context, depsgraph):
