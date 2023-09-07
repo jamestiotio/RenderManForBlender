@@ -1540,17 +1540,7 @@
             "type": "string",
             "default": "",
             "help": "Inserts a string of custom command arguments into the render process"                   
-        },
-        {
-            "panel": "",
-            "page": "Denoising",
-            "name": "use_legacy_denoiser",
-            "label": "Use Legacy Denoiser",
-            "type": "int",
-            "default": 0,
-            "widget": "checkbox",
-            "help": "Use the previous denoiser to denoise passes."
-        },      
+        },    
         {
             "panel": "",
             "page": "Denoising",
@@ -1560,12 +1550,7 @@
             "default": 0.0,
             "min": 0.0,
             "max": 2.0,
-            "help": "Controls the asymmetry value, 0 is best quality, higher values encourage the denoiser to avoid overblurring, leading to weaker denoising.",
-            "conditionalVisOps": {
-                "conditionalVisOp": "notEqualTo",
-                "conditionalVisPath": "use_legacy_denoiser",
-                "conditionalVisValue": "1"
-            }               
+            "help": "Controls the asymmetry value, 0 is best quality, higher values encourage the denoiser to avoid overblurring, leading to weaker denoising."             
         },     
         {
             "panel": "RENDER_PT_renderman_spooling_export_options",
@@ -1575,12 +1560,7 @@
             "type": "string",
             "widget": "dirinput",
             "default": "",
-            "help": "The output directory for the denoised images. If not set, we put the images into a subfolder 'denoised' relative to the input images.",
-            "conditionalVisOps": {
-                "conditionalVisOp": "notEqualTo",
-                "conditionalVisPath": "use_legacy_denoiser",
-                "conditionalVisValue": "1"
-            }               
+            "help": "The output directory for the denoised images. If not set, we put the images into a subfolder 'denoised' relative to the input images."             
         },        
         {
             "panel": "RENDER_PT_renderman_spooling_export_options",
@@ -1591,12 +1571,7 @@
             "default": "singleframe",
             "widget": "mapper",
             "options": "Single Frame:singleframe|Cross Frame:crossframe",
-            "help": "Use single frame or cross frame. Cross frame requires at least 7 frames.",
-            "conditionalVisOps": {
-                "conditionalVisOp": "notEqualTo",
-                "conditionalVisPath": "use_legacy_denoiser",
-                "conditionalVisValue": "1"
-            }               
+            "help": "Use single frame or cross frame. Cross frame requires at least 7 frames."
         },              
         {
             "panel": "RENDER_PT_renderman_spooling_export_options",
@@ -1606,12 +1581,7 @@
             "type": "int",
             "default": 1,
             "widget": "checkbox",
-            "help": "Whether to compute optical flow.",
-            "conditionalVisOps": {
-                "conditionalVisOp": "notEqualTo",
-                "conditionalVisPath": "use_legacy_denoiser",
-                "conditionalVisValue": "1"
-            }               
+            "help": "Whether to compute optical flow."
         },
         {
             "panel": "RENDER_PT_renderman_spooling_export_options",
@@ -1621,47 +1591,7 @@
             "type": "int",
             "default": 0,
             "widget": "checkbox",
-            "help": "Enable versbose output.",
-            "conditionalVisOps": {
-                "conditionalVisOp": "notEqualTo",
-                "conditionalVisPath": "use_legacy_denoiser",
-                "conditionalVisValue": "1"
-            }               
-        },              
-        {
-            "panel": "RENDER_PT_renderman_spooling_export_options",
-            "page": "Denoising",
-            "name": "denoise_cmd",
-            "label": "Custom Denoise Commands",
-            "type": "string",
-            "default": "",
-            "help": "Inserts a string of custom commands arguments into the denoising process (hyperion), if selected",
-            "conditionalVisOps": {
-                "conditionalVisOp": "notEqualTo",
-                "conditionalVisPath": "use_legacy_denoiser",
-                "conditionalVisValue": "0"
-            }            
-        },                              
-        {
-            "panel": "RENDER_PT_renderman_spooling_export_options",
-            "page": "Denoising",
-            "name": "denoise_gpu",
-            "label": "Use GPU for denoising",
-            "type": "int",
-            "default": 0,
-            "widget": "checkbox",
-            "help": "The denoiser (hyperion) will attempt to use the GPU (if available)",
-            "conditionalVisOps": {
-                "conditionalVis1Path": "use_legacy_denoiser",
-                "conditionalVis2Op": "notEqualTo",
-                "conditionalVis1Value": "1",
-                "conditionalVisOp": "and",
-                "conditionalVis1Op": "equalTo",
-                "conditionalVisLeft": "conditionalVis1",
-                "conditionalVisRight": "conditionalVis2",
-                "conditionalVis2Path": "current_platform",
-                "conditionalVis2Value": "macOS"     
-            }             
+            "help": "Enable versbose output."
         }
     ]
 }

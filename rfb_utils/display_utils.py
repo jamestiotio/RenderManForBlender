@@ -169,10 +169,6 @@ def _add_denoiser_channels(dspys_dict, dspy_params, rman_scene):
 
         dspys_dict['displays']['beauty']['params']['displayChannels'].append(chan)            
 
-    if rman_scene.bl_scene.renderman.use_legacy_denoiser:
-        filePath = dspys_dict['displays']['beauty']['filePath']
-        f,ext = os.path.splitext(filePath)
-        dspys_dict['displays']['beauty']['filePath'] = f + '_variance' + ext
     dspys_dict['displays']['beauty']['is_variance'] = True
 
 def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens, do_optix_denoise=False):   
