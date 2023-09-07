@@ -314,10 +314,6 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             layout.separator()
             row = col.row()
             row.prop(channel, "chan_pixelfilter")
-            row = col.row()
-            if channel.chan_pixelfilter != 'default':
-                row.prop(channel, "chan_pixelfilter_x", text="Size X")
-                row.prop(channel, "chan_pixelfilter_y", text="Size Y")
             layout.separator()
 
             row = col.row()

@@ -84,51 +84,19 @@
         {
             "panel": "RENDER_PT_layer_custom_aovs",            
             "name": "chan_pixelfilter",
-            "label": "Pixel Filter",
+            "label": "Filter Rule",
             "type": "string",
             "default": "default",
-            "page": "Pixel Filter",
+            "page": "Filter",
             "widget": "popup",
-            "options": "default|box|triangle|catmull-rom|sinc|gaussian|mitchell|separable-catmull-rom|blackman-harris|lanczos|bessel|disk|min|max|average|zmin|zmax|sum",
+            "options": "default|min|max|average|zmin|zmax|sum",
             "help": "The name of the pixel filter to be used for the output display. In addition, five special filters may be used: min, max, average, zmin, and zmax. The first three filters have the same meaning as the depthfilter argument to Hider, i.e. instead of running a convolution filter across all samples, only a single value (the minimum, maximum, or average of all pixel samples) is returned and written into the final pixel value. The zmin and zmax filters operate like the min and max filters, except that the depth value of the pixel sample is used for comparison, and not the value implied by the mode itself. These filters are useful for arbitrary output variables where standard alpha compositing does not make sense, or where linear interpolation of values between disjoint pieces of geometry is nonsensical. Note that when these filters are used, opacity thresholding is also used on that output to determine which closest surface to sample.",
             "conditionalVisOps": {
                 "conditionalVisOp": "equalTo",
                 "conditionalVisPath": "show_advanced",
                 "conditionalVisValue": 1
             }            
-        },  
-        {
-            "panel": "RENDER_PT_layer_custom_aovs",            
-            "name": "chan_pixelfilter_x",
-            "label": "Filter Size X",
-            "type": "int",
-            "default": 1,
-            "page": "Pixel Filter",
-            "min": 0,
-            "max": 16,
-            "help": "",
-            "conditionalVisOps": {
-                "conditionalVisOp": "notEqualTo",
-                "conditionalVisPath": "chan_pixelfilter",
-                "conditionalVisValue": "default"
-            }            
-        },      
-        {
-            "panel": "RENDER_PT_layer_custom_aovs",            
-            "name": "chan_pixelfilter_y",
-            "label": "Filter Size Y",
-            "type": "int",
-            "default": 1,
-            "page": "Pixel Filter",
-            "min": 0,
-            "max": 16,
-            "help": "",
-            "conditionalVisOps": {
-                "conditionalVisOp": "notEqualTo",
-                "conditionalVisPath": "chan_pixelfilter",
-                "conditionalVisValue": "default"
-            }            
-        },                   
+        },                     
         {
             "panel": "RENDER_PT_layer_custom_aovs",            
             "name": "stats_type",

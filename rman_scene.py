@@ -1412,7 +1412,6 @@ class RmanScene(object):
             chan_remap_c = chan_params['remap_c']['value']
             chan_exposure = chan_params['exposure']['value']
             chan_filter = chan_params['filter']['value']
-            chan_filterwidth = chan_params['filterwidth']['value']
             chan_statistics = chan_params['statistics']['value']
             displaychannel = self.rman.SGManager.RixSGDisplayChannel(chan_type, chan_name)
             if chan_source:
@@ -1426,7 +1425,6 @@ class RmanScene(object):
 
             if chan_filter != 'default':
                 displaychannel.params.SetString("filter", chan_filter)
-                displaychannel.params.SetFloatArray("filterwidth", chan_filterwidth, 2 )
 
             if chan_statistics and chan_statistics != 'none':
                 displaychannel.params.SetString("statistics", chan_statistics)
@@ -1523,7 +1521,6 @@ class RmanScene(object):
             chan_remap_c = chan_params['remap_c']['value']
             chan_exposure = chan_params['exposure']['value']
             chan_filter = chan_params['filter']['value']
-            chan_filterwidth = chan_params['filterwidth']['value']
             chan_statistics = chan_params['statistics']['value']
             chan_shadowthreshold = chan_params['shadowthreshold']['value']
             if chan_type == 'float[2]':
@@ -1541,7 +1538,6 @@ class RmanScene(object):
 
             if chan_filter != 'default':
                 displaychannel.params.SetString("filter", chan_filter)
-                displaychannel.params.SetFloatArray("filterwidth", chan_filterwidth, 2 )
 
             if chan_statistics and chan_statistics != 'none':
                 displaychannel.params.SetString("statistics", chan_statistics)

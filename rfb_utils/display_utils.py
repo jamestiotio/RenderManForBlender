@@ -55,8 +55,7 @@ def _default_dspy_params():
     d[u'remap_b'] = { 'type': u'float', 'value': 0.0}
     d[u'remap_c'] = { 'type': u'float', 'value': 0.0}  
     d[u'exposure'] = { 'type': u'float2', 'value': [1.0, 1.0] }
-    d[u'filter'] = {'type': u'string', 'value': 'default'}
-    d[u'filterwidth'] = { 'type': u'float2', 'value': [2,2]}   
+    d[u'filter'] = {'type': u'string', 'value': 'default'}  
     d[u'statistics'] = { 'type': u'string', 'value': 'none'}
     d[u'shadowthreshold'] = { 'type': u'float', 'value': 0.01} 
 
@@ -336,7 +335,6 @@ def _add_chan_to_dpsychan_list(rm, rm_rl, dspys_dict, chan):
 
         if chan.chan_pixelfilter != 'default':
             d[u'filter'] = {'type': u'string', 'value': chan.chan_pixelfilter}
-            d[u'filterwidth'] = { 'type': u'float2', 'value': [chan.chan_pixelfilter_x, chan.chan_pixelfilter_y]}
 
         d[u'statistics'] = { 'type': u'string', 'value': chan.stats_type}
         d[u'shadowthreshold'] = { 'type': u'float', 'value': chan.shadowthreshold}
@@ -482,8 +480,7 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens, d
             d = _default_dspy_params()
             d[u'channelSource'] = {'type': u'string', 'value': 'id'}
             d[u'channelType'] = { 'type': u'string', 'value': 'integer'}     
-            d[u'filter'] = {'type': u'string', 'value': 'zmin'}
-            d[u'filterwidth'] = { 'type': u'float2', 'value': [1, 1]}            
+            d[u'filter'] = {'type': u'string', 'value': 'zmin'}         
             dspys_dict['channels']['id'] = d     
             dspy_params['displayChannels'].append('id')
             filePath = 'id_pass'
@@ -618,7 +615,6 @@ def get_dspy_dict(rman_scene, expandTokens=True, include_holdouts=True):
                                     u'displayType': { 'type': u'message', 'value': u'd_openexr'},
                                     u'exposure': { 'type': u'float2', 'value': [1.0, 1.0]},
                                     u'filter': { 'type': u'string', 'value': 'default},
-                                    u'filterwidth': { 'type': u'float2', 'value': [1.0, 1.0]},
                                     u'remap_a': { 'type': u'float', 'value': 0.0},
                                     u'remap_b': { 'type': u'float', 'value': 0.0},
                                     u'remap_c': { 'type': u'float', 'value': 0.0}
