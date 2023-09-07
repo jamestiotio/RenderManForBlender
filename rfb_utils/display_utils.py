@@ -708,9 +708,10 @@ def make_dspy_info(scene, is_interactive=False):
     dspy_notes += "Integrator:\t%s\r\r" % integrator_nm
     if is_interactive:
         dspy_notes += "Samples:\t%d - %d\r" % (rm.ipr_hider_minSamples, rm.ipr_hider_maxSamples)
+        dspy_notes += "Pixel Variance:\t%f\r\r" % rm.ipr_ri_pixelVariance
     else:
         dspy_notes += "Samples:\t%d - %d\r" % (rm.hider_minSamples, rm.hider_maxSamples)        
-    dspy_notes += "Pixel Variance:\t%f\r\r" % rm.ri_pixelVariance
+        dspy_notes += "Pixel Variance:\t%f\r\r" % rm.ri_pixelVariance
 
     # moved this in front of integrator check. Was called redundant in
     # both cases
