@@ -1045,7 +1045,12 @@ def setParams(Asset, node, paramsList):
                     depfile = Asset.getDependencyPath(pname, pval)
                     if depfile:
                         pval = depfile
-                setattr(node, pname, pval)
+                try:
+                    setattr(node, pname, pval)
+                except:
+                    rfb_log().error('setParams FAILED: %s  ptype: %s  pval: %s' %
+                                (pname, ptype, repr(pval)))
+
             elif ptype in float3:
                 try:
                    setattr(node, pname, pval)
@@ -1060,7 +1065,12 @@ def setParams(Asset, node, paramsList):
                         setattr(node, pname, pval)
                 except:
                     if type(getattr(node, pname)) == bpy.types.EnumProperty:
-                        setattr(node, pname, str(pval))                   
+                        try:
+                            setattr(node, pname, str(pval))
+                        except:
+                            rfb_log().error('setParams FAILED: %s  ptype: %s  pval: %s' %
+                                (pname, ptype, repr(pval)))
+
 
     # if this is a PxrSurface, turn on all of the enable gains.
     if hasattr(node, 'plugin_name') and node.plugin_name in ['PxrLayer', 'PxrSurface']:
