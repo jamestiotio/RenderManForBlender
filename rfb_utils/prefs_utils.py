@@ -22,6 +22,9 @@ def show_wip_qt():
         return False    
     return get_pref('rman_show_wip_qt')
 
+def single_node_view():
+    return get_pref('rman_single_node_view')
+
 def get_pref(pref_name='', default=None):
     """ Return the value of a preference
 

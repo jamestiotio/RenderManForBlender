@@ -109,7 +109,8 @@ __DEFAULTS__ = {
     'rman_tractor_whendone': '',
     'rman_tractor_whenerror': '',
     'rman_tractor_whenalways': '',
-    'rman_tractor_dirmaps': []
+    'rman_tractor_dirmaps': [],
+    'rman_single_node_view': False
 }
 
 class RendermanPreferencePath(bpy.types.PropertyGroup):
@@ -704,6 +705,12 @@ class RendermanPreferences(AddonPreferences):
 
     rman_tractor_dirmaps: bpy.props.CollectionProperty(type=RendermanDirMap)
 
+    rman_single_node_view: BoolProperty(
+        name='Single Node View',
+        default=False,
+        description="If enabled, the Material tab will only show the current selected node, rather than embedding all of the connected nodes."
+    )
+
     def draw_xpu_devices(self, context, layout):
         if self.rman_xpu_device == 'CPU':
             device = self.rman_xpu_cpu_devices[0]
@@ -821,6 +828,7 @@ class RendermanPreferences(AddonPreferences):
         col.prop(self, 'rman_ui_framework')
         if self.rman_ui_framework == 'QT':
             col.prop(self, 'rman_show_wip_qt')
+        col.prop(self, 'rman_single_node_view')
 
         # Logging
         row = layout.row()

@@ -185,7 +185,8 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             if ui_open:         
                 row = layout.row(align=True)
                 draw_utils.draw_indented_label(row, None, level+1)                
-                row.prop(node, arraylen_nm, text=bl_prop_info.label)  
+                row.prop(node, arraylen_nm, text=bl_prop_info.label) 
+                draw_utils.draw_sticky_toggle(row, node, prop_name, output_node) 
                 ui_struct_members = ui_structs.get(prop_name)
                 for i in range(arraylen):
                     draw_utils.draw_indented_label(layout, prop_label + ' [%d]:' % i, level)

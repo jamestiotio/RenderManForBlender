@@ -903,6 +903,17 @@ def has_stylized_pattern_node(ob, node=None):
 
     return False
 
+def check_if_connected(srcNode, dstNode):
+    found = False
+    for socket in srcNode.outputs:
+        if socket.is_linked:
+            for link in socket.links:
+                if link.to_node == dstNode:
+                    found = True
+                else:
+                    found = found or check_if_connected(link.to_node, dstNode)
+    return found
+
 def hide_cycles_nodes(id):
     cycles_output_node = None
     if isinstance(id, bpy.types.Material):

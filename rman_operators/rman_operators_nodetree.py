@@ -761,6 +761,88 @@ class PRMAN_OT_Fix_All_Ramps(bpy.types.Operator):
 
         shadergraph_utils.reload_bl_ramps(None, check_library=False)
         return {"FINISHED"}        
+    
+class PRMAN_OT_Select_Nodetree_Node(bpy.types.Operator):
+    bl_idname = "node.rman_select_nodetree_node"
+    bl_label = ""
+    bl_description = "View the connected node"
+    bl_options = {"INTERNAL"}
+
+    def execute(self, context):
+        node = context.node
+        nt = getattr(context, 'nodetree', node.id_data)
+        for n in nt.nodes:
+            n.select = False
+        node.select = True
+
+        return {"FINISHED"}    
+
+class PRMAN_OT_Select_Nodetree_Reset(bpy.types.Operator):
+    bl_idname = "node.rman_select_nodetree_reset"
+    bl_label = ""
+    bl_description = "Go back to the base node"
+    bl_options = {"INTERNAL"}
+
+    def execute(self, context):
+        node = context.node
+        nt = getattr(context, 'nodetree', node.id_data)
+        for n in nt.nodes:
+            n.select = False
+
+        return {"FINISHED"}       
+    
+class PRMAN_MT_Select_Nodetree_Downstream(bpy.types.Menu):
+    bl_label = "Select Downstream Node"
+    bl_idname = "PRMAN_MT_Select_Nodetree_Downstream"
+    bl_description = "Select a downstream node"
+
+    @classmethod
+    def poll(cls, context):
+        return context.engine == "PRMAN_RENDER"
+
+    def draw(self, context):
+        layout = self.layout
+        node = context.node
+        any_connections = False
+        seen_nodes = list()
+        for socket in node.outputs:
+            if socket.is_linked:
+                any_connections = True
+                to_node = socket.links[0].to_node
+                if to_node not in seen_nodes:
+                    seen_nodes.append(to_node)                
+                    layout.context_pointer_set("node", to_node)
+                    layout.operator_context = 'EXEC_DEFAULT'
+                    op = layout.operator('node.rman_select_nodetree_node', text="%s (%s)" % (to_node.name, to_node.bl_label))
+        if not any_connections:
+            layout.label(text="No Nodes")
+
+class PRMAN_MT_Select_Nodetree_Upstream(bpy.types.Menu):
+    bl_label = "Select Upstream Node"
+    bl_idname = "PRMAN_MT_Select_Nodetree_Upstream"
+    bl_description = "Select an upstream node"
+
+    @classmethod
+    def poll(cls, context):
+        return context.engine == "PRMAN_RENDER"
+
+    def draw(self, context):
+        layout = self.layout
+        node = context.node
+        any_connections = False
+        seen_nodes = list()
+        for socket in node.inputs:
+            if socket.is_linked:
+                any_connections = True
+                from_node = socket.links[0].from_node
+                if from_node not in seen_nodes:
+                    seen_nodes.append(from_node)
+                    layout.context_pointer_set("node", from_node)
+                    layout.operator_context = 'EXEC_DEFAULT'
+                    op = layout.operator('node.rman_select_nodetree_node', text="%s (%s)" % (from_node.name, from_node.bl_label))
+        if not any_connections:
+            layout.label(text="No Nodes")            
+
 
 classes = [
     SHADING_OT_convert_all_renderman_nodetree,
@@ -777,7 +859,11 @@ classes = [
     PRMAN_OT_Force_LightFilter_Refresh,
     PRMAN_OT_Add_Projection_Nodetree,
     PRMAN_OT_Fix_Ramp,
-    PRMAN_OT_Fix_All_Ramps
+    PRMAN_OT_Fix_All_Ramps,
+    PRMAN_OT_Select_Nodetree_Node,
+    PRMAN_OT_Select_Nodetree_Reset,
+    PRMAN_MT_Select_Nodetree_Downstream,
+    PRMAN_MT_Select_Nodetree_Upstream    
 ]
 
 def register():

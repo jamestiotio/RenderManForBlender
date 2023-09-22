@@ -1,5 +1,6 @@
 from ..rfb_logger import rfb_log
 from . import shadergraph_utils
+from . import prefs_utils
 from .property_utils import BlPropInfo, __LOBES_ENABLE_PARAMS__
 from ..rman_constants import NODE_LAYOUT_SPLIT
 from .. import rman_config
@@ -302,28 +303,51 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
     layout.context_pointer_set("socket", bl_prop_info.socket)
     if bl_prop_info.is_linked:
         input_node = shadergraph_utils.socket_node_input(nt, bl_prop_info.socket)
-        icon = get_open_close_icon(bl_prop_info.socket.ui_open)
+        if prefs_utils.single_node_view():
+            icon = get_open_close_icon(False)
 
-        split = layout.split()
-        row = split.row()
-        draw_indented_label(row, None, level)
-        row.context_pointer_set("socket", bl_prop_info.socket)               
-        row.operator('node.rman_open_close_link', text='', icon=icon, emboss=False)
-        label = prop_meta.get('label', prop_name)
-        
-        rman_icon = rfb_icons.get_node_icon(input_node.bl_label)               
-        row.label(text=label + ' (%s):' % input_node.name)
-        if sticky:
-            return
+            split = layout.split()
+            row = split.row()
+            draw_indented_label(row, None, level)                         
+            label = prop_meta.get('label', prop_name)
+            
+            rman_icon = rfb_icons.get_node_icon(input_node.bl_label)               
+            row.label(text=label + ' (%s):' % input_node.name)
+            if sticky:
+                return
 
-        row.context_pointer_set("socket", bl_prop_info.socket)
-        row.context_pointer_set("node", node)
-        row.context_pointer_set("nodetree", nt)
-        row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
-                                
-        if bl_prop_info.socket.ui_open:
-            draw_node_properties_recursive(layout, context, nt,
-                                            input_node, level=level + 1)
+            row.context_pointer_set("node", input_node)
+            row.context_pointer_set("nodetree", nt)        
+            row.operator('node.rman_select_nodetree_node', text='', icon=icon)
+            row.context_pointer_set("socket", bl_prop_info.socket)
+            row.context_pointer_set("node", node)
+            row.context_pointer_set("nodetree", nt)
+            row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)            
+        else:
+            icon = get_open_close_icon(bl_prop_info.socket.ui_open)
+
+            split = layout.split()
+            row = split.row()
+            draw_indented_label(row, None, level)
+            row.context_pointer_set("socket", bl_prop_info.socket)               
+            
+            row.operator('node.rman_open_close_link', text='', icon=icon, emboss=False)
+            
+            label = prop_meta.get('label', prop_name)
+            
+            rman_icon = rfb_icons.get_node_icon(input_node.bl_label)               
+            row.label(text=label + ' (%s):' % input_node.name)
+            if sticky:
+                return
+
+            row.context_pointer_set("socket", bl_prop_info.socket)
+            row.context_pointer_set("node", node)
+            row.context_pointer_set("nodetree", nt)
+            row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
+                                    
+            if bl_prop_info.socket.ui_open:
+                draw_node_properties_recursive(layout, context, nt,
+                                                input_node, level=level + 1)
         return
 
     elif bl_prop_info.renderman_type == 'page':
@@ -548,22 +572,67 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='bxdf_in',
         split = layout.split(factor=0.35)
         split.label(text=socket.identifier + ':')
 
-        split.context_pointer_set("socket", socket)
-        split.context_pointer_set("node", output_node)
-        split.context_pointer_set("nodetree", nt)            
-        if socket.is_linked:
-            rman_icon = rfb_icons.get_node_icon(node.bl_label)            
-            split.menu('NODE_MT_renderman_connection_menu', text='%s (%s)' % (node.name, node.bl_label), icon_value=rman_icon.icon_id)
-        else:
-            split.menu('NODE_MT_renderman_connection_menu', text='None', icon='NODE_MATERIAL')            
+        if prefs_utils.single_node_view():
+            if socket.is_linked:
+                rman_icon = rfb_icons.get_node_icon(node.bl_label)            
+                split.label(text='%s (%s)' % (node.name, node.bl_label), icon_value=rman_icon.icon_id)
+            else:
+                split.menu('NODE_MT_renderman_connection_menu', text='None', icon='NODE_MATERIAL')   
+
+            layout.separator()                     
+
+            if node is not None:
+                selected_node = None
+                for n in nt.nodes:
+                    if n.select:
+                        selected_node = n
+                        break
+
+                if selected_node and shadergraph_utils.check_if_connected(selected_node, node):
+                    
+                    row = layout.row()
+                    rman_icon = rfb_icons.get_node_icon(selected_node.bl_label)
+                    row.label(text="%s (%s)" % (selected_node.name, selected_node.bl_label), icon_value=rman_icon.icon_id)
+                    split = layout.split(factor=0.0)
+                    row = split.row()
+                    col = row.column()
+                    col.context_pointer_set("node", selected_node)
+                    col.context_pointer_set("nodetree", nt)            
+                    col.menu("PRMAN_MT_Select_Nodetree_Downstream", text="", icon="TRIA_LEFT")
+                    
+                    col = row.column()
+                    col.context_pointer_set("node", node)
+                    col.context_pointer_set("nodetree", nt)            
+                    col.operator("node.rman_select_nodetree_reset", icon="HOME")
+
+                    col = row.column()
+                    col.context_pointer_set("node", selected_node)
+                    col.context_pointer_set("nodetree", nt)            
+                    col.menu("PRMAN_MT_Select_Nodetree_Upstream", text="", icon="TRIA_RIGHT")
+                    layout.separator()  
+
+                    node = selected_node
+
+        else:        
+            split.context_pointer_set("socket", socket)
+            split.context_pointer_set("node", output_node)
+            split.context_pointer_set("nodetree", nt)            
+            if socket.is_linked:
+                rman_icon = rfb_icons.get_node_icon(node.bl_label)            
+                split.menu('NODE_MT_renderman_connection_menu', text='%s (%s)' % (node.name, node.bl_label), icon_value=rman_icon.icon_id)
+            else:
+                split.menu('NODE_MT_renderman_connection_menu', text='None', icon='NODE_MATERIAL')                           
+            layout.separator()                     
 
     if node is not None:
         draw_node_properties_recursive(layout, context, nt, node)
 
 def show_node_sticky_params(layout, node, prop_names, context, nt, output_node, node_label_drawn=False):
     label_drawn = node_label_drawn
+    ui_structs = getattr(node, 'ui_structs', dict())
     for prop_name in prop_names:
         prop_meta = node.prop_meta[prop_name]
+        bl_prop_info = BlPropInfo(node, prop_name, prop_meta)
         renderman_type = prop_meta.get('renderman_type', '')
         if renderman_type == 'page':
             prop = getattr(node, prop_name)
@@ -583,8 +652,11 @@ def show_node_sticky_params(layout, node, prop_names, context, nt, output_node, 
             inputs = getattr(node, 'inputs', dict())
             socket =  inputs.get(prop_name, None)
             
-            draw_sticky_toggle(row, node, prop_name, output_node)                
-            draw_prop(node, prop_name, row, level=1, nt=nt, context=context, sticky=True)
+            draw_sticky_toggle(row, node, prop_name, output_node)
+            if prop_name in ui_structs:
+                draw_ui_struct(layout, node, prop_name, bl_prop_info, nt, context, level=0)
+            else:
+                draw_prop(node, prop_name, row, level=1, nt=nt, context=context, sticky=True)
 
     return label_drawn
 
