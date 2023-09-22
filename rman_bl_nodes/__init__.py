@@ -20,6 +20,7 @@ from ..rman_constants import CYCLES_NODE_MAP
 from ..rman_constants import RMAN_FAKE_NODEGROUP
 from nodeitems_utils import NodeCategory, NodeItem
 from collections import OrderedDict
+from copy import deepcopy
 from bpy.props import *
 import bpy
 import os
@@ -114,6 +115,7 @@ def get_cycles_node_desc(node):
 def class_generate_properties(node, parent_name, node_desc):
     prop_names = []
     prop_meta = {}
+    ui_structs = {}
     output_meta = OrderedDict()
 
     if "__annotations__" not in node.__dict__:
@@ -185,6 +187,34 @@ def class_generate_properties(node, parent_name, node_desc):
         if not update_function:
             update_function = update_func
 
+        if node_desc_param.has_ui_struct:
+            ui_struct_nm = node_desc_param.uiStruct
+            ui_struct = ui_structs.get(ui_struct_nm, [])
+            if not ui_struct:
+                generate_property_utils.generate_uistruct_property(node, ui_struct_nm, prop_names, prop_meta)
+            ui_struct.append(node_desc_param.name)
+            ui_structs[ui_struct_nm] = ui_struct 
+            sub_prop_names = []
+            param_name = node_desc_param._name  
+            if isinstance(node_desc_param.default, list):
+                node_desc_param.default = node_desc_param.default[0]
+
+            for i in range(0, RFB_ARRAYS_MAX_LEN+1):      
+                ndp = deepcopy(node_desc_param)
+                ndp._name = '%s[%d]' % (param_name, i)
+                if hasattr(ndp, 'label'):
+                    ndp.label = '%s' % (ndp.label)
+                ndp.size = None
+                name, meta, prop = generate_property_utils.generate_property(node, ndp, update_function=update_function)
+                meta['renderman_array_name'] = param_name
+                meta['ui_struct'] = ui_struct_nm
+                sub_prop_names.append(ndp._name)
+                prop_meta[ndp._name] = meta
+                node.__annotations__[ndp._name] = prop  
+
+            setattr(node, param_name, sub_prop_names)   
+            continue            
+           
         if node_desc_param.is_array():
             # this is an array 
             if generate_property_utils.generate_array_property(node, prop_names, prop_meta, node_desc_param, update_function=update_function):
@@ -282,6 +312,7 @@ def class_generate_properties(node, parent_name, node_desc):
     setattr(node, 'prop_names', prop_names)
     setattr(node, 'prop_meta', prop_meta)
     setattr(node, 'output_meta', output_meta)
+    setattr(node, "ui_structs", ui_structs)
 
 def generate_node_type(node_desc, is_oso=False):
     ''' Dynamically generate a node type from pattern '''
@@ -469,7 +500,12 @@ def generate_node_type(node_desc, is_oso=False):
         has_textured_params = True
         ntype.__annotations__['txm_id'] = StringProperty(name='txm_id', default="")
         for param in node_desc.textured_params:
-            rman_textured_params.append(param.name)
+            if param.has_ui_struct:
+                for i in range(RFB_ARRAYS_MAX_LEN+1):
+                    nm = '%s[%d]' % (param.name, i)
+                    rman_textured_params.append(nm)
+            else:
+                rman_textured_params.append(param.name)
     
     setattr(ntype, 'rman_textured_params', rman_textured_params)
     ntype.__annotations__['rman_has_textured_params'] = BoolProperty(

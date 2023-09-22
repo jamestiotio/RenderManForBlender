@@ -359,7 +359,7 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
         row.label(text=page_label)
 
         if ui_open:
-            draw_props(node, sub_prop_names, layout, level=level + 1, nt=nt, context=context)
+            draw_props(node, sub_prop_names, layout, level=level + 1, nt=nt, context=context, draw_ui_structs=False)
         return
 
     elif bl_prop_info.renderman_type == 'array':
@@ -457,14 +457,65 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
                 op.nodeID = nodeID     
             else:
                 draw_indented_label(row, None, level)
-                row.label(text="Input mage does not exists.", icon='ERROR')                        
+                row.label(text="Input mage does not exists.", icon='ERROR')   
+                   
 
-def draw_props(node, prop_names, layout, level=0, nt=None, context=None):
+def draw_ui_struct(layout, node, prop_name, bl_prop_info, nt, context, level):
+    row = layout.row(align=True)
+    row.enabled = not bl_prop_info.prop_disabled
+
+    ui_prop = prop_name + "_uio"
+    ui_open = getattr(node, ui_prop)
+    icon = get_open_close_icon(ui_open)
+
+    split = layout.split(factor=NODE_LAYOUT_SPLIT)
+    row = split.row()
+    row.enabled = not bl_prop_info.prop_disabled
+    draw_indented_label(row, None, level)
+
+    row.context_pointer_set("node", node)
+    op = row.operator('node.rman_open_close_page', text='', icon=icon, emboss=False)            
+    op.prop_name = ui_prop
+    prop_label = bl_prop_info.label
+    arraylen_nm = '%s_arraylen' % prop_name
+    arraylen = getattr(node, arraylen_nm)
+    array_label = prop_label + ' [%d]:' % arraylen
+    row.label(text=array_label)    
+    if ui_open:
+        row = layout.row(align=True)
+        draw_indented_label(row, None, level+1)
+        row.prop(node, arraylen_nm, text=bl_prop_info.label)
+        ui_structs = getattr(node, 'ui_structs', dict())
+        ui_struct_members = ui_structs.get(prop_name)
+        for i in range(arraylen):
+            row = layout.row(align=True)
+            draw_indented_label(row, prop_label + ' [%d]:' % i, level)
+            for nm in ui_struct_members:
+                prop_name = '%s[%d]' % (nm, i)
+                draw_prop(node, prop_name, layout, level=level+1, nt=nt, context=context)
+                
+def draw_props(node, prop_names, layout, level=0, nt=None, context=None, draw_ui_structs=True):
     layout.context_pointer_set("node", node)
     if nt:
         layout.context_pointer_set("nodetree", nt)
 
+    ui_structs = getattr(node, 'ui_structs', dict())
+    ui_struct_members = []
+
+    if ui_structs:
+        for prop_name,v in node.ui_structs.items():
+            prop_meta = node.prop_meta[prop_name]
+            bl_prop_info = BlPropInfo(node, prop_name, prop_meta)
+            if draw_ui_structs:
+                draw_ui_struct(layout, node, prop_name, bl_prop_info, nt, context, level)
+            ui_struct_members += v
+            pass 
+
     for prop_name in prop_names:
+        if prop_name in ui_structs:
+            continue
+        if prop_name in ui_struct_members:
+            continue
         draw_prop(node, prop_name, layout, level=level, nt=nt, context=context)
 
 def panel_node_draw(layout, context, id_data, output_type, input_name):

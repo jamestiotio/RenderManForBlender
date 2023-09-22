@@ -120,7 +120,32 @@ def generate_colorspace_menu(node, param_name):
     ui_label = "%s_colorspace" % param_name
     node.__annotations__[ui_label] = EnumProperty(name=ui_label, items=colorspace_names,update=lambda s,c: update_colorspace_name(s,c, param_name))    
 
+def generate_uistruct_property(node, name, prop_names, prop_meta):
+    prop_meta[name] = {'renderman_type': '', 
+                            'renderman_array_type': '',
+                            'renderman_name':  name,
+                            'label': name,
+                            'type': 'int',
+                            'widget': 'default',
+                            '__noconnection': True,
+                            'is_ui_struct': True,
+                            }
+    prop_names.append(name)
 
+    ui_label = "%s_sticky" % name
+    node.__annotations__[ui_label] = BoolProperty(name=ui_label, default=False)
+
+
+    ui_label = "%s_uio" % name
+    node.__annotations__[ui_label] = BoolProperty(name=ui_label, default=False)
+
+    arraylen_nm = '%s_arraylen' % name
+    prop = IntProperty(name=arraylen_nm, 
+                        default=0, min=0, max=RFB_ARRAYS_MAX_LEN,
+                        description="Number of %s" % name,
+                        update=update_array_size_func)
+    node.__annotations__[arraylen_nm] = prop    
+    
 def generate_array_property(node, prop_names, prop_meta, node_desc_param, update_function=None):
     '''Generate the necessary properties for an array parameter and
     add it to the node
@@ -166,7 +191,8 @@ def generate_array_property(node, prop_names, prop_meta, node_desc_param, update
                             'renderman_name':  param_name,
                             'label': param_label,
                             'type': node_desc_param.type,
-                            '__noconnection': noconnection
+                            '__noconnection': noconnection,
+                            'is_ui_struct': False
                             }
     prop_names.append(param_name)
 
@@ -237,6 +263,7 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
     prop_meta['label'] = param_label
     prop_meta['widget'] = param_widget
     prop_meta['options'] = getattr(sp, 'options', OrderedDict())
+    prop_meta['is_ui_struct'] = False
 
     if hasattr(sp, 'connectable') and not sp.connectable:
         prop_meta['__noconnection'] = True

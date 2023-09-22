@@ -149,14 +149,31 @@ def update_array_size_func(self, context):
         mat = getattr(context.space_data, 'id', None)
         if mat:
             node.update_mat(mat)
+
+    links = dict()
     
     # first remove all sockets/inputs from the node related to arrays
+    ui_structs = getattr(node, 'ui_structs', dict())    
     for prop_name,meta in node.prop_meta.items():
+        is_ui_struct = meta.get('is_ui_struct', False)
         renderman_type = meta.get('renderman_type', '')
-        if renderman_type == 'array':
+        if is_ui_struct:
+            ui_struct_members = ui_structs[prop_name]
+            for member in ui_struct_members:
+                sub_prop_names = getattr(node, member)                  
+                for nm in sub_prop_names:
+                    if nm in node.inputs.keys():
+                        socket = node.inputs[nm]
+                        if socket.is_linked:
+                            links[nm] = {"from_node": socket.links[0].from_node, "from_socket": socket.links[0].from_socket}
+                        node.inputs.remove(node.inputs[nm])          
+        elif renderman_type == 'array':
             sub_prop_names = getattr(node, prop_name)
             for nm in sub_prop_names:
                 if nm in node.inputs.keys():
+                    socket = node.inputs[nm]
+                    if socket.is_linked:
+                        links[nm] = {"from_node": socket.links[0].from_node, "from_socket": socket.links[0].from_socket}                    
                     node.inputs.remove(node.inputs[nm])
 
     # now re-add all sockets/inputs
@@ -171,7 +188,13 @@ def update_array_size_func(self, context):
         for input_name, socket in node.inputs.items():
             if 'hidden' in prop_meta[input_name]:
                 socket.hide = prop_meta[input_name]['hidden']    
-           
+
+    # reconnect any links that were linked before:
+    for nm, link in links.items():
+        if nm in node.inputs:
+            socket = node.inputs[nm]
+            if not socket.hide:
+                node.id_data.links.new(link['from_socket'], socket)
 
 def update_func(self, context):
     # check if this prop is set on an input

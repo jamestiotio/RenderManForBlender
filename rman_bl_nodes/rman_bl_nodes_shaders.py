@@ -144,7 +144,8 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         node = self
         prop_meta = node.prop_meta[prop_name]
         bl_prop_info = BlPropInfo(node, prop_name, prop_meta)
-        if bl_prop_info.prop is None:
+        ui_structs = getattr(node, 'ui_structs', dict())
+        if not bl_prop_info.is_ui_struct and bl_prop_info.prop is None:
             return
         if bl_prop_info.widget == 'null':
             return
@@ -165,7 +166,37 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         if bl_prop_info.prop_hidden:
             return
 
-        if bl_prop_info.widget == 'colorramp':
+        if bl_prop_info.is_ui_struct:                      
+            ui_prop = prop_name + "_uio"
+            ui_open = getattr(node, ui_prop)
+            icon = draw_utils.get_open_close_icon(ui_open)
+
+            split = layout.split(factor=NODE_LAYOUT_SPLIT)
+            row = split.row()
+            row.enabled = not bl_prop_info.prop_disabled
+            row.context_pointer_set("node", node)
+            op = row.operator('node.rman_open_close_page', text='', icon=icon, emboss=False)            
+            op.prop_name = ui_prop
+            prop_label = bl_prop_info.label
+            arraylen_nm = '%s_arraylen' % prop_name
+            arraylen = getattr(node, arraylen_nm)
+            array_label = prop_label + ' [%d]:' % arraylen
+            row.label(text=array_label) 
+            if ui_open:         
+                row = layout.row(align=True)
+                draw_utils.draw_indented_label(row, None, level+1)                
+                row.prop(node, arraylen_nm, text=bl_prop_info.label)  
+                ui_struct_members = ui_structs.get(prop_name)
+                for i in range(arraylen):
+                    draw_utils.draw_indented_label(layout, prop_label + ' [%d]:' % i, level)
+                    for nm in ui_struct_members:
+                        sub_prop_name = '%s[%d]' % (nm, i)
+                        meta = node.prop_meta[sub_prop_name]
+                        if meta.get('__noconnection', False):
+                             self.draw_nonconnectable_prop(context, layout, sub_prop_name, output_node=output_node, level=level+1)
+
+            return                
+        elif bl_prop_info.widget == 'colorramp':
             node_group = self.rman_fake_node_group_ptr
             if not node_group:
                 row = layout.row(align=True)
