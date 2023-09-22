@@ -187,13 +187,13 @@ class RmanHairCurvesTranslator(RmanTranslator):
             strand_points = strand_points.tolist()
             widths = widths.tolist()
 
-            '''
-            # do we really need to double the end points?
+            
+            # double the end points
             strand_points = strand_points[:1] + \
                 strand_points + strand_points[-1:]
 
             widths = widths[:1] + widths + widths[-1:]
-            '''
+            
             vertsInStrand = len(strand_points)
 
             bl_curve.points.extend(strand_points)
