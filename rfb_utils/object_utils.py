@@ -35,6 +35,8 @@ def get_db_name(ob, rman_type='', psys=None):
         elif ob.type == 'EMPTY':
             db_name = '%s' % ob.name_full  
 
+    if db_name == '':
+        db_name = '%s' % ob.name_full
 
     return string_utils.sanitize_node_name(db_name)
 
@@ -185,6 +187,12 @@ def prototype_key(ob):
 
                 We can remove this once this gets fixed in Blender: 
                 https://projects.blender.org/blender/blender/issues/111393
+                '''
+                return '%s-DATA' % ob.object.original.name_full
+            elif isinstance(ob.object.data, bpy.types.Curves):
+                '''
+                Looks like a similar problem as above happens with Curves as well. The data block
+                name is not unique when you have multiple Curves object.
                 '''
                 return '%s-DATA' % ob.object.original.name_full
             return '%s-DATA' % ob.object.data.name_full
