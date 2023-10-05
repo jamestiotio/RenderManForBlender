@@ -191,6 +191,7 @@ RMAN_BL_NODE_DESCRIPTIONS = {
     'PxrIntMultLightFilter': "PxrIntMultLightFilter is a light filter that allows you to multiply the intensity/exposure of the light. This is very useful when you want to isolate a particular asset(s) from the rest of the scene that has different intensity/exposure. This is via linking the objects to the PxrIntMultLightFilter. You can now guide your viewer using light intensity!",
     'PxrRampLightFilter': "PxrRampLightFilter uses a ramp to control the light. It may also be useful to artificially and artistically control light decay.",
     'PxrRodLightFilter': "PxrRodLightFilter uses a 'rod' like object to block light. The rod can be shaped into an irregular shape. This rod is then placed next to the object where we want to block the light.\nThis light filter is a more extensive version of PxrBlockerLightFilter.",
+    'PxrCheatShadowLightFilter': "PxrCheatShadowLightFilter provides independent control over shadow positions without affecting the direction of illumination. Use translate for finite light sources (e.g. disk, rect, sphere, etc) and use rotation for infinite light sources (e.g. distant, sun halo, etc)",
 
     # Integrators
     'PxrPathTracer': "PxrPathTracer is a core final-quality integrator in RenderMan. It implements the forward path tracing algorithm, which excels in outdoor, highly specular scenes. The simplicity of the algorithm generally makes it easy to use and to implement. Shortcomings may include slow convergence speeds, especially for scenes with significant caustic illumination.",

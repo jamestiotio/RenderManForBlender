@@ -336,6 +336,12 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                 prop_search_parent = options.get('prop_parent')
                 prop_search_name = options.get('prop_name')
                 eval(f'row.prop_search(node, prop_name, {prop_search_parent}, "{prop_search_name}")') 
+                if prop_search_parent == 'context.scene.renderman':
+                    rman_icon = rfb_icons.get_icon('rman_blender')
+                    if prop_search_name == 'object_groups':                
+                        row.operator('scene.rman_open_groups_editor', text='', icon_value=rman_icon.icon_id )
+                    elif prop_search_name == 'vol_aggregates':
+                        row.operator('scene.rman_open_vol_aggregates_editor', text='', icon_value=rman_icon.icon_id )                
                 draw_utils.draw_sticky_toggle(row, node, prop_name, output_node)   
 
             elif bl_prop_info.read_only:

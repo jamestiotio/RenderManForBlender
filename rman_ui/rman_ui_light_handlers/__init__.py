@@ -456,6 +456,7 @@ s_cylinderLight['indices_tris'] = [
 __MTX_Y_180__ = Matrix.Rotation(math.radians(180.0), 4, 'Y')
 __MTX_X_90__ = Matrix.Rotation(math.radians(90.0), 4, 'X')
 __MTX_Y_90__ = Matrix.Rotation(math.radians(90.0), 4, 'Y')
+__MTX_Y_NEG_90__ = Matrix.Rotation(math.radians(-90.0), 4, 'Y')
 
 
 if USE_GPU_MODULE and not bpy.app.background:
@@ -1110,6 +1111,33 @@ def draw_envday_light(ob):
      
     draw_line_shape(ob, _SHADER_, sphere_shape, sphere_indices)
 
+def draw_cheat_shadow_lightfilter(ob): 
+                 
+    _SHADER_.bind()
+
+    set_selection_color(ob)
+
+    ob_matrix = Matrix(ob.matrix_world)        
+    m = ob_matrix @ __MTX_Y_180__ 
+    m = m @ __MTX_Y_NEG_90__
+
+    disk = [m @ Vector(pt) for pt in s_diskLight]
+    disk_indices = _get_indices(s_diskLight)
+    draw_line_shape(ob, _SHADER_, disk, disk_indices)
+
+    arrow = [m @ Vector(pt) for pt in s_rmanLightLogo['arrow']]
+    arrow_indices = _get_indices(s_rmanLightLogo['arrow'])
+    draw_line_shape(ob, _SHADER_, arrow, arrow_indices)
+
+    R_outside = [m @ Vector(pt) for pt in s_rmanLightLogo['R_outside']]
+    R_outside_indices = _get_indices(s_rmanLightLogo['R_outside'])
+    draw_line_shape(ob, _SHADER_, R_outside, R_outside_indices)
+  
+    R_inside = [m @ Vector(pt) for pt in s_rmanLightLogo['R_inside']]
+    R_inside_indices = _get_indices(s_rmanLightLogo['R_inside'])
+    draw_line_shape(ob, _SHADER_, R_inside, R_inside_indices)
+      
+
 def draw_disk_light(ob): 
     global _FRUSTUM_DRAW_HELPER_
                  
@@ -1641,6 +1669,8 @@ def draw():
             draw_rod_light_filter(ob)
         elif light_shader_name == 'PxrRampLightFilter':
             draw_ramp_light_filter(ob)
+        elif light_shader_name == 'PxrCheatShadowLightFilter':
+            draw_cheat_shadow_lightfilter(ob)
         elif light_shader_name in ['PxrGoboLightFilter', 'PxrCookieLightFilter', 'PxrBarnLightFilter']:
             # get all lights that the barn is attached to
             draw_barn_light_filter(ob, light_shader, light_shader_name)

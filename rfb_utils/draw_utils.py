@@ -437,6 +437,12 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
         prop_search_parent = options.get('prop_parent')
         prop_search_name = options.get('prop_name')
         eval(f'row.prop_search(node, prop_name, {prop_search_parent}, "{prop_search_name}")') 
+        if prop_search_parent == 'context.scene.renderman':
+            rman_icon = rfb_icons.get_icon('rman_blender')
+            if prop_search_name == 'object_groups':                
+                row.operator('scene.rman_open_groups_editor', text='', icon_value=rman_icon.icon_id )
+            elif prop_search_name == 'vol_aggregates':
+                row.operator('scene.rman_open_vol_aggregates_editor', text='', icon_value=rman_icon.icon_id )
     elif bl_prop_info.renderman_type in ['struct', 'bxdf', 'vstruct']:
         row.label(text=bl_prop_info.label)
     elif bl_prop_info.read_only:

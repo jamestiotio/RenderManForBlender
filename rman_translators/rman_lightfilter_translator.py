@@ -20,6 +20,7 @@ class RmanLightFilterTranslator(RmanTranslator):
         maxLFs = []
         minLFs = []
         screenLFs = []
+        has_cheat_shadow = False
         rman_sg_node.sg_node.SetLightFilter([])
         for lf in rm.light_filters:
             light_filter = lf.linked_filter_ob
@@ -59,6 +60,8 @@ class RmanLightFilterTranslator(RmanTranslator):
                     minLFs.append(instance_name)
                 elif combineMode == 'screen':
                     screenLFs.append(instance_name)
+                if lightfilter_node.bl_label == "PxrCheatShadowLightFilter":
+                    has_cheat_shadow = True
 
         if len(light_filters) > 1:
             # create a combiner node
@@ -70,7 +73,13 @@ class RmanLightFilterTranslator(RmanTranslator):
             if minLFs:
                 combiner.params.SetLightFilterReferenceArray("min", minLFs, len(minLFs))                
             if screenLFs:
-                combiner.params.SetLightFilterReferenceArray("screen", screenLFs, len(screenLFs))      
+                combiner.params.SetLightFilterReferenceArray("screen", screenLFs, len(screenLFs)) 
+
+            if has_cheat_shadow:
+                combiner.params.SetInteger("combineShadows", 1)
+            else:
+                combiner.params.Remove("combineShadows")
+
             light_filters.append(combiner)                                        
 
         if len(light_filters) > 0:
