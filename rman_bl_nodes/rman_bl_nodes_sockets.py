@@ -11,6 +11,7 @@ import re
 def update_func(self, context):
     # check if this prop is set on an input
     node = self.node if hasattr(self, 'node') else self
+    node.id_data.update_tag()
 
 __CYCLES_GROUP_NODES__ = ['ShaderNodeGroup', 'NodeGroupInput', 'NodeGroupOutput']
 __SOCKET_HIDE_VALUE__ = ['bxdf', 'projection', 'light', 'integrator', 'struct', 'vstruct'
@@ -135,12 +136,12 @@ __RENDERMAN_TYPES_SOCKETS__ = [
 __RENDERMAN_TYPES_SOCKET_INTERFACES__ =[
     ('float', 'Float', bpy.types.NodeSocketInterfaceFloat, (0.5, 0.5, 0.5, 1.0), False,
         {
-            'default_value': FloatProperty() 
+            'default_value': FloatProperty(update=update_func) 
         }
     ),
     ('int', 'Int', bpy.types.NodeSocketInterfaceInt, (1.0, 1.0, 1.0, 1.0), False,
         {
-            'default_value': IntProperty()
+            'default_value': IntProperty(update=update_func)
         }
     ),
     ('struct', 'Struct', bpy.types.NodeSocketInterfaceString, (1.0, 0.344, 0.0, 1.0), True,
@@ -166,17 +167,17 @@ __RENDERMAN_TYPES_SOCKET_INTERFACES__ =[
     ),      
     ('vector', 'Vector', bpy.types.NodeSocketInterfaceVector, (.25, .25, .75, 1.0), False,
         {
-            'default_value': FloatVectorProperty(size=3, subtype="EULER")
+            'default_value': FloatVectorProperty(size=3, subtype="EULER", update=update_func)
         }
     ),         
     ('normal', 'Normal', bpy.types.NodeSocketInterfaceVector, (.25, .25, .75, 1.0), False,
         {
-            'default_value': FloatVectorProperty(size=3, subtype="EULER")
+            'default_value': FloatVectorProperty(size=3, subtype="EULER", update=update_func)
         }
     ),       
     ('point', 'Point', bpy.types.NodeSocketInterfaceVector, (.25, .25, .75, 1.0), False,
         {
-            'default_value': FloatVectorProperty(size=3, subtype="EULER")
+            'default_value': FloatVectorProperty(size=3, subtype="EULER", update=update_func)
         }
     ),             
     ('light', 'Light', bpy.types.NodeSocketInterfaceString, (0.25, 1.0, 0.25, 1.0), True,

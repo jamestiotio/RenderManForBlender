@@ -42,6 +42,8 @@ def readOSO(filePath):
                 prop_meta['vstructConditionalExpr'] = mdict['default'].replace('  ', ' ')
             elif mdict['name'] == 'match':
                 prop_meta['match'] = mdict['default']  
+            elif mdict['name'] == 'connectable':
+                prop_meta['connectable'] = bool(mdict['default'])
             elif mdict['name'] == 'lockgeom':
                 dflt = 1
                 lockgeom = mdict.get('default', dflt)
