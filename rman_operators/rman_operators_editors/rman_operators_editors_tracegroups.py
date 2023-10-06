@@ -264,7 +264,7 @@ if not bpy.app.background:
 
         def bl_select_objects(self, obs):
             context = bpy.context
-            for ob in context.selected_objects:
+            for ob in getattr(context, "selected_objects", list()):
                 ob.select_set(False)
             for ob in obs:
                 ob.select_set(True)
