@@ -1,9 +1,11 @@
 from . import string_utils
 from . import prefs_utils
+from . import osl_utils
 from ..rman_constants import __RMAN_EMPTY_STRING__, __RESERVED_BLENDER_NAMES__, RFB_FLOAT3
 from ..rfb_logger import rfb_log
 from bpy.props import *
 import bpy
+import os
 
 
 __GAINS_TO_ENABLE__ = {
@@ -559,9 +561,21 @@ def set_dspymeta_params(node, prop_name, params):
 
 def set_pxrosl_params(node, rman_sg_node, params, ob=None, mat_name=None):
 
+    prop_meta = getattr(node, 'prop_meta', dict())
+    shader_path = node.shadercode
+    already_read = False
     for input_name, input in node.inputs.items():
+        if input_name not in prop_meta and already_read == False: 
+            # re-read the OSL shader to get the meta data
+            if os.path.exists(shader_path):
+                rfb_log().debug("Re-read OSL shader: %s" % shader_path)
+                prop_names, prop_meta = osl_utils.readOSO(shader_path)
+            already_read = True
+        meta = prop_meta.get(input_name, dict())
         prop_type = input.renderman_type
-        if input.is_linked:
+        shader_default_value = meta.get('default', None)
+        connectable = meta.get('connectable', True)
+        if input.is_linked and connectable:
             to_socket = input
             from_socket = input.links[0].from_socket
 
@@ -571,9 +585,11 @@ def set_pxrosl_params(node, rman_sg_node, params, ob=None, mat_name=None):
             val = get_output_param_str(rman_sg_node, from_socket.node, mat_name, from_socket, to_socket, param_type)
             if val:
                 set_rix_param(params, param_type, param_name, val, is_reference=True)    
-
         elif type(input).__name__ != 'RendermanNodeSocketStruct':
-
+            if shader_default_value is None:
+                # if there is no shader default, skip
+                # this might be a point parameter that's set to something like "P" as a default
+                continue
             param_type = prop_type
             param_name = input_name
             val = string_utils.convert_val(input.default_value, type_hint=prop_type)

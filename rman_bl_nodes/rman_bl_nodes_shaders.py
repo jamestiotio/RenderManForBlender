@@ -11,6 +11,7 @@ from ..rman_constants import RFB_FLOAT3
 from .. import rman_bl_nodes
 from .. import rfb_icons
 from .. import rman_render
+from copy import deepcopy
 from bpy.types import Menu
 from bpy.props import EnumProperty, StringProperty, CollectionProperty, BoolProperty, PointerProperty
 import _cycles
@@ -465,12 +466,15 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             FileNameOSO += ".oso"
             export_path = os.path.join(compile_path, FileNameOSO)
             if os.path.splitext(FileName)[1] == ".oso":
-                out_file = os.path.join(compile_path, FileNameOSO)
-                if not os.path.exists(out_file) or not os.path.samefile(osl_path, out_file):
-                    shutil.copy(osl_path, out_file)
-                # Assume that the user knows what they were doing when they
-                # compiled the osl file.
-                ok = True
+                if not os.path.exists(osl_path):
+                    return "OSL: %s not found" % osl_path
+                else:
+                    out_file = os.path.join(compile_path, FileNameOSO)
+                    if not os.path.exists(out_file) or not os.path.samefile(osl_path, out_file):
+                        shutil.copy(osl_path, out_file)
+                    # Assume that the user knows what they were doing when they
+                    # compiled the osl file.
+                    ok = True
             else:
                 ok = node.compile_osl(osl_path, compile_path)
         elif getattr(node, "codetypeswitch") == "INT" and node.internalSearch:
@@ -503,23 +507,25 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         else:
             ok = False
             rfb_log().error("OSL: Shader cannot be compiled. Shader name not specified")
+            return "OSL: Shader cannot be compiled. Shader name not specified"
         # If Shader compiled successfully then update node.
         if ok:
             rfb_log().info("OSL: Shader Compiled Successfully!")
-            # Reset the inputs and outputs
-            node.outputs.clear()
-            node.inputs.clear()
             # Read in new properties
             prop_names, shader_meta = readOSO(export_path)
             rfb_log().debug('OSL: %s MetaInfo: %s' % (str(prop_names), str(shader_meta)))
             # Set node name to shader name
             node.label = shader_meta["shader"]
+            node.name = shader_meta["shader"]
             node.plugin_name = shader_meta["shader"]
             # Generate new inputs and outputs
             setattr(node, 'shader_meta', shader_meta)
             node.setOslProps(prop_names, shader_meta)
         else:
             rfb_log().error("OSL: NODE COMPILATION FAILED")
+            return "OSL: NODE COMPILATION FAILED"
+        
+        return None
 
     def compile_osl(self, inFile, outPath, nameOverride=""):
         if not nameOverride:
@@ -578,11 +584,33 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             return True            
 
     def setOslProps(self, prop_names, shader_meta):
+        # save links
+        links = dict()
+        values = dict()
+        for input_name, socket in self.inputs.items():
+            if socket.is_linked:
+                links[input_name] = {"from_node": socket.links[0].from_node, "from_socket": socket.links[0].from_socket}
+            else:
+                values[input_name] = deepcopy(socket.default_value)
+        for input_name, socket in self.outputs.items():
+            if socket.is_linked:
+                links[input_name] = {"from_node": socket.links[0].to_node, "from_socket": socket.links[0].to_socket}
+
+        # Reset the inputs and outputs
+        self.outputs.clear()
+        self.inputs.clear()
+
+        prop_meta = getattr(self, 'prop_meta', dict())
         for prop_name in prop_names:
+            prop_meta[prop_name] = shader_meta[prop_name]
             prop_type = shader_meta[prop_name]["type"]
             if shader_meta[prop_name]["IO"] == "out":
-                self.outputs.new(
+                socket = self.outputs.new(
                     rman_socket_utils.__RMAN_SOCKET_MAP__[prop_type], prop_name)
+                if prop_name in links and socket.hide is False:
+                    link = links[prop_name]
+                    self.id_data.links.new(socket, link['from_socket'])
+
             else:
                 prop_default = shader_meta[prop_name]["default"]
                 if prop_default:
@@ -605,11 +633,16 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                     if prop_type == 'struct' or prop_type == 'point':
                         input.hide_value = True
                     input.renderman_type = prop_type
+                    if prop_name in links and input.hide is False:
+                        link = links[prop_name]
+                        self.id_data.links.new(link['from_socket'], input)
+                    elif prop_name in values:
+                        input.default_value = values.get(prop_name, input.default_value)
+
         rfb_log().debug("Shader: %s", shader_meta["shader"])
         rfb_log().debug("Properties: %s" % str(prop_names))
         rfb_log().debug("Shader meta data: %s" % str(shader_meta))
-        compileLocation = self.name + "Compile"
-
+        self.prop_meta = prop_meta
 
 class RendermanOutputNode(RendermanShadingNode):
     bl_label = 'RenderMan Material'

@@ -583,10 +583,14 @@ class NODE_OT_rman_node_change_output(bpy.types.Operator):
 class NODE_OT_rman_refresh_osl_shader(bpy.types.Operator):
     bl_idname = "node.rman_refresh_osl_shader"
     bl_label = "Refresh OSL Node"
-    bl_description = "Refreshes the OSL node This takes a second!!"
+    bl_description = "Refreshes the OSL node."
 
     def invoke(self, context, event):
-        context.node.RefreshNodes(context)
+        err = context.node.RefreshNodes(context)
+        if err:
+            self.report({'ERROR'}, err)
+        else:
+            self.report({'INFO'}, "PxrOSL node finished refreshing.")
         return {'FINISHED'}
 
 class NODE_OT_rman_open_close_link(bpy.types.Operator):
