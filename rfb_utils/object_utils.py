@@ -1,5 +1,6 @@
 import bpy
 from .prefs_utils import get_pref
+from ..rman_constants import BLENDER_HAS_CURVES_NODE
 from . import string_utils
 
 # These types don't create instances
@@ -189,7 +190,7 @@ def prototype_key(ob):
                 https://projects.blender.org/blender/blender/issues/111393
                 '''
                 return '%s-DATA' % ob.object.original.name_full
-            elif isinstance(ob.object.data, bpy.types.Curves):
+            elif BLENDER_HAS_CURVES_NODE and isinstance(ob.object.data, bpy.types.Curves):
                 '''
                 Looks like a similar problem as above happens with Curves as well. The data block
                 name is not unique when you have multiple Curves object.
