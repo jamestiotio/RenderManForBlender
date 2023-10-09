@@ -484,18 +484,25 @@ class RmanRender(object):
         argv.append("-dspyserver")
         argv.append("%s" % envconfig().rman_it_path)
 
-        argv.append("-statssession")
-        argv.append(self.stats_mgr.rman_stats_session_name)
-
         woffs = ',' . join(rfb_config['woffs'])
         if woffs:
             argv.append('-woff')
             argv.append(woffs)
-
-        self.rictl.PRManBegin(argv)  
+  
+        self.rictl.PRManSystemBegin(argv)
 
     def __del__(self):   
-        self.rictl.PRManEnd()
+        self.rictl.PRManSystemEnd()
+
+    def _do_prman_render_begin(self):
+        argv = []
+        argv.append("-statssession")
+        argv.append(self.stats_mgr.rman_stats_session_name)        
+        err = self.rictl.PRManRenderBegin(argv)
+        if err:
+            rfb_log().error("Error initializing RenderMan")
+        return err
+
 
     def del_bl_engine(self):
         if not self.bl_engine:
@@ -631,6 +638,8 @@ class RmanRender(object):
     def start_render(self, depsgraph, for_background=False):
     
         self.reset()
+        if self._do_prman_render_begin():
+            return False
         self.bl_scene = depsgraph.scene_eval
         rm = self.bl_scene.renderman
         self.it_port = start_cmd_server()    
@@ -763,6 +772,8 @@ class RmanRender(object):
         return True   
 
     def start_external_render(self, depsgraph):  
+        if self._do_prman_render_begin():
+            return False        
 
         bl_scene = depsgraph.scene_eval
         rm = bl_scene.renderman
@@ -890,10 +901,13 @@ class RmanRender(object):
             spooler.batch_render()
         self.rman_running = False
         self.del_bl_engine()
+        self.rictl.PRManRenderEnd()
         return True          
 
     def start_bake_render(self, depsgraph, for_background=False):
         self.reset()
+        if self._do_prman_render_begin():
+            return False        
         self.bl_scene = depsgraph.scene_eval
         rm = self.bl_scene.renderman
         self.it_port = start_cmd_server()    
@@ -951,6 +965,8 @@ class RmanRender(object):
         return True        
 
     def start_external_bake_render(self, depsgraph):  
+        if self._do_prman_render_begin():
+            return False        
 
         bl_scene = depsgraph.scene_eval
         rm = bl_scene.renderman
@@ -1034,12 +1050,15 @@ class RmanRender(object):
             spooler.batch_render()
         self.rman_running = False
         self.del_bl_engine()
+        self.rictl.PRManRenderEnd()
         return True                  
 
     def start_interactive_render(self, context, depsgraph):
 
         global __DRAW_THREAD__
         self.reset()
+        if self._do_prman_render_begin():
+            return False        
         __update_areas__()
         if not self._check_prman_license():
             return False          
@@ -1130,6 +1149,8 @@ class RmanRender(object):
 
     def start_swatch_render(self, depsgraph):
         self.reset()
+        if self._do_prman_render_begin():
+            return False        
         self.bl_scene = depsgraph.scene_eval
 
         rfb_log().debug("Parsing scene...")
@@ -1289,6 +1310,8 @@ class RmanRender(object):
             if is_main_thread:
                 rfb_log().debug("Delete Scenegraph scene")
             self.sgmngr.DeleteScene(self.sg_scene)
+
+        self.rictl.PRManRenderEnd()
 
         self.sg_scene = None
         #self.stats_mgr.reset()
