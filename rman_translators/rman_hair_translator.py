@@ -238,6 +238,8 @@ class RmanHairTranslator(RmanTranslator):
             if bl_curve.nverts > 100000:
                 curve_sets.append(bl_curve)
                 bl_curve = BlHair()
+                if conwidth:
+                    bl_curve.hair_width.append(base_width)                
 
         if bl_curve.nverts > 0:       
             curve_sets.append(bl_curve)
