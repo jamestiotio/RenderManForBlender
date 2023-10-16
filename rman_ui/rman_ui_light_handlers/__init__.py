@@ -28,6 +28,7 @@ _BARN_LIGHT_DRAW_HELPER_ = None
 _PI0_5_ = 1.570796327
 _PRMAN_TEX_CACHE_ = dict()
 _RMAN_TEXTURED_LIGHTS_ = ['PxrRectLight', 'PxrDomeLight', 'PxrGoboLightFilter', 'PxrCookieLightFilter']
+DOME_LIGHT_UVS = list()
 
 s_rmanLightLogo = dict()
 s_rmanLightLogo['box'] = [
@@ -728,6 +729,18 @@ def load_gl_texture(tex):
     return texture  
 
 def make_sphere():
+    """
+    Return a list of vertices (list) in local space.
+    a 4x4 sphere looks like so:
+        0  1  2  3  - 0
+        4  5  6  7  - 4
+        8  9  10 11 - 8
+        12 13 14 15 - 12
+    i.e., we repeat the first and last vertex in each column so they may have
+    different uv coords. The first vertex has u=0.0 and the repeated first
+    vertex has u=1.0.
+    The top and bottom rows are the poles and all vertice have the same position.
+    """    
     cols = 32
     rows = 32
     radius = 1.0
@@ -792,15 +805,14 @@ def make_sphere_idx_buffer():
     num_idxs = len(idxs)
     return idxs
 
-def make_sphere_uvs():
+def make_sphere_uvs(uv_offsets=[0.0, 0.0]):
     uvs = []
     cols = 32
     rows = 32
-    uv_offsets = [0.25, 0.0]
 
     ncols = cols + 1
 
-    cstep = 1.0 / cols
+    cstep = (1.0 / cols)
     rstep = 1.0 / (rows - 1)
     for i in range(rows):
         for j in range(ncols):
@@ -811,11 +823,23 @@ def make_sphere_uvs():
 
     return uvs   
 
+def make_dome_light_uvs(uv_offsets=[0.25, 0.0]):
+    global DOME_LIGHT_UVS
+    if DOME_LIGHT_UVS:
+        return DOME_LIGHT_UVS
+    
+    DOME_LIGHT_UVS = make_sphere_uvs(uv_offsets=uv_offsets)
+    return DOME_LIGHT_UVS
+
 def draw_solid(ob, pts, mtx, uvs=list(), indices=None, tex='', col=None):
     global _PRMAN_TEX_CACHE_
 
     scene = bpy.context.scene
     rm = scene.renderman
+
+    if bpy.context.space_data.shading.type in ['WIREFRAME', 'RENDERED']:
+        return
+
     if rm.is_rman_viewport_rendering:
         return    
 
@@ -1231,6 +1255,13 @@ def draw_dome_light(ob):
     m = Matrix.Rotation(angle, 4, axis)
     m = m @ Matrix.Scale(100 * scale, 4)
     m = m @ __MTX_X_90__ 
+    uv_offsets = [0.25, 0.0]
+    if USE_GPU_MODULE:
+        # the GPU module doesn't seem to do any texture wrapping
+        # when UVs go over the boundary. Reset the UV offsets
+        # and rotate 90 degrees on the Y-axis
+        uv_offsets = [0.0, 0.0]
+        m = m @ __MTX_Y_90__ 
 
     sphere_pts = make_sphere()
     sphere = [m @ Vector(p) for p in sphere_pts]
@@ -1245,7 +1276,7 @@ def draw_dome_light(ob):
     real_path = string_utils.expand_string(tex)
     if os.path.exists(real_path):
         sphere_indices = [(idx_buffer[i], idx_buffer[i+1], idx_buffer[i+2]) for i in range(0, len(idx_buffer)-2) ]
-        draw_solid(ob, sphere_pts, m, uvs=make_sphere_uvs(), tex=tex, indices=sphere_indices)
+        draw_solid(ob, sphere_pts, m, uvs=make_dome_light_uvs(uv_offsets=uv_offsets), tex=tex, indices=sphere_indices)
 
 def draw_cylinder_light(ob):
     global _FRUSTUM_DRAW_HELPER_
