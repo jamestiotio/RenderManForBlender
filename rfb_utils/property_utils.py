@@ -88,7 +88,7 @@ class BlPropInfo:
         if self.has_input:
             self.socket = inputs.get(prop_name)
             self.is_linked = self.socket.is_linked
-            if self.is_linked:
+            if self.is_linked and len(self.socket.links) > 0:
                 self.link = self.socket.links[0]
                 self.from_socket = self.link.from_socket
                 self.from_node = self.link.from_node
