@@ -241,7 +241,10 @@ def convert_val(v, type_hint=None):
 
     # float, int
     if type_hint == 'color':
-        converted_val = list(v)[:3]
+        if isinstance(v, list):
+            converted_val = list(v)[:3]
+        elif isinstance(v, float) or isinstance(v, int):
+            converted_val = (float(v), float(v), float(v))
 
     elif type(v) in (mathutils.Vector, mathutils.Color) or\
             v.__class__.__name__ == 'bpy_prop_array'\

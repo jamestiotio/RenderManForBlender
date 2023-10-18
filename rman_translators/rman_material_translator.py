@@ -463,12 +463,13 @@ class RmanMaterialTranslator(RmanTranslator):
                     from_node, mat_name, from_socket).replace(':', '_')
                     
             val = property_utils.get_output_param_str(rman_sg_material, from_node, mat_name, from_socket)
-            sg_node = self.rman_scene.rman.SGManager.RixSGShader("Pattern", node_type, node_name)
-            rix_params = sg_node.params       
-            if input_type == 'color':
-                rix_params.SetColorReference('input', val)
-            else:
-                rix_params.SetFloatReference('input', val)            
+            if val is not None and val != '':
+                sg_node = self.rman_scene.rman.SGManager.RixSGShader("Pattern", node_type, node_name)
+                rix_params = sg_node.params       
+                if input_type == 'color':
+                    rix_params.SetColorReference('input', val)
+                else:
+                    rix_params.SetFloatReference('input', val)            
                     
             return [sg_node]
         elif node.bl_idname == 'NodeReroute':

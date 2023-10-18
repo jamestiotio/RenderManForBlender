@@ -27,6 +27,7 @@ NODE_LAYOUT_SPLIT = 0.5
 class RendermanShadingNode(bpy.types.ShaderNode):
     bl_label = 'Output'
     prev_hidden: BoolProperty(default=False, description="Whether or not this node was previously hidden.")
+    new_links = []
 
     def update_mat(self, mat):
         if self.renderman_node_type == 'bxdf' and self.outputs['bxdf_out'].is_linked:
@@ -578,27 +579,68 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         ok = _cycles.osl_compile(inFile, out_file)
 
         return ok
+    
+    def insert_link(self, link):
+        if link in RendermanShadingNode.new_links:
+            pass
+        else:
+            RendermanShadingNode.new_links.append(link)    
+    
+    def accept_link(self, node_tree, link):
+        from_node = link.from_node
+        to_node = link.to_node
+        from_socket = link.from_socket
+        to_socket = link.to_socket
+        from_node_type = getattr(from_node, 'renderman_node_type', None)
+        to_node_type = getattr(to_node, 'renderman_node_type', None)
+        if from_node_type:  
+            if not shadergraph_utils.is_socket_same_type(from_socket, to_socket):
+                
+                if shadergraph_utils.is_socket_float_type(from_socket) and shadergraph_utils.is_socket_float3_type(to_socket):
+                    # allow for float -> float3 like connections
+                    return True
+                elif shadergraph_utils.is_socket_float3_type(from_socket) and shadergraph_utils.is_socket_float_type(to_socket):
+                    # allow for float3 -> float/int connections
+                    return True
+                
+                return False
+
+            # if this is a struct, check that the struct name matches
+            elif from_node_type == 'struct':
+                if to_node_type != 'struct':
+                    return False
+                if link.from_socket.struct_name != link.to_socket.struct_name:
+                    return False
+            return True                       
+
+        return True
 
     def update(self):
-        for output in self.outputs:
-            if not output.is_linked:
+        node_tree = self.id_data
+        for link in RendermanShadingNode.new_links:
+            if link is None:
                 continue
-            if len(output.links) < 1:
+            to_node = link.to_node
+            from_node = link.from_node
+            if not to_node:
                 continue
-            link = output.links[0]
-            from_node_type = getattr(link.from_socket, 'renderman_type', None)
-            to_node_type = getattr(link.to_socket, 'renderman_type', None)
-            if not from_node_type:
-                continue            
-            if not to_node_type:
-                continue            
-
-            if not shadergraph_utils.is_socket_same_type(link.from_socket, link.to_socket):
+            if not from_node:
+                continue
+            accept_link = True
+            if hasattr(to_node, 'accept_link'):
+                accept_link = to_node.accept_link(node_tree, link)
+            if not accept_link:
                 node_tree = self.id_data
                 try:
                     node_tree.links.remove(link) 
-                except:
-                    pass
+                    bpy.ops.renderman.printer('INVOKE_DEFAULT', level="ERROR", message="Link is not valid")
+                except Exception as e:
+                    rfb_log().debug("Cannot remove link: %s" % str(e))
+                    pass       
+
+        if RendermanShadingNode.new_links:
+            self.id_data.update_tag()
+            RendermanShadingNode.new_links.clear()
 
     @classmethod
     def poll(cls, ntree):
@@ -687,7 +729,6 @@ class RendermanOutputNode(RendermanShadingNode):
     renderman_node_type = 'output'
     bl_icon = 'MATERIAL'
     node_tree = None
-    new_links = []
 
     def update_solo_node_name(self, context):
         rr = rman_render.RmanRender.get_rman_render()        
@@ -773,34 +814,24 @@ class RendermanOutputNode(RendermanShadingNode):
 
     def draw_buttons_ext(self, context, layout):
         return
+    
+    def accept_link(self, node_tree, link):
+        if not hasattr(link.from_socket, 'renderman_type'):
+            return False
+        if not hasattr(link.to_socket, 'renderman_type'):
+            return False
+        if link.from_socket.renderman_type == link.to_socket.renderman_type:
+            return True
+        
+        # FIXME: this should removed eventually
+        if link.to_socket.bl_idname == 'RendermanShaderSocket':
+            return True
 
-    def insert_link(self, link):
-        if link in self.new_links:
-            pass
-        else:
-            self.new_links.append(link)
-
-    # when a connection is made or removed see if we're in IPR mode and issue
-    # updates
+        return False
+    
     def update(self):
-        for link in self.new_links:
-            if not hasattr(link.from_socket, 'renderman_type'):
-                continue
-            if not hasattr(link.to_socket, 'renderman_type'):
-                continue            
-            if link.from_socket.renderman_type != link.to_socket.renderman_type:
-                # FIXME: this should removed eventually
-                if link.to_socket.bl_idname == 'RendermanShaderSocket':
-                    continue
-                node_tree = self.id_data
-                try:
-                    node_tree.links.remove(link)
-                    bpy.ops.renderman.printer('INVOKE_DEFAULT', level="ERROR", message="Link is not valid")
-                except:
-                    pass
-        
-        self.new_links.clear()
-        
+        super().update()
+
         # check if the solo node still exists
         if self.solo_node_name:
             solo_nodetree = self.solo_nodetree
@@ -808,27 +839,13 @@ class RendermanOutputNode(RendermanShadingNode):
             if solo_node is None:
                 shadergraph_utils.set_solo_node(self, solo_nodetree, '', refresh_solo=True)
                 solo_nodetree.update_tag()
-                return
-
-        self.id_data.update_tag()
-
-        # This sucks. There doesn't seem to be a way to tag the material
-        # it needs updating, so we manually issue an edit
-        '''
-        area = getattr(bpy.context, 'area', None)
-        if area and area.type == 'NODE_EDITOR':
-            rr = rman_render.RmanRender.get_rman_render()        
-            mat = getattr(bpy.context, 'material', None)
-            if mat:
-                rr.rman_scene_sync.update_material(mat)
-        '''
+                return     
 
 class RendermanIntegratorsOutputNode(RendermanShadingNode):
     bl_label = 'RenderMan Integrators'
     renderman_node_type = 'integrators_output'
     bl_icon = 'MATERIAL'
     node_tree = None
-    new_links = []
 
     def init(self, context):
         input = self.inputs.new('RendermanNodeSocketIntegrator', 'integrator_in', identifier='Integrator')
@@ -838,30 +855,21 @@ class RendermanIntegratorsOutputNode(RendermanShadingNode):
 
     def draw_buttons_ext(self, context, layout):   
         return
-
-    def insert_link(self, link):
-        if link in self.new_links:
-            pass
-        else:
-            self.new_links.append(link)
+    
+    def accept_link(self, node_tree, link):
+        from_node_type = getattr(link.from_socket, 'renderman_type', None)
+        if not from_node_type:
+            return False            
+        if from_node_type != 'integrator':
+            return False
+        
+        return True
 
     def update(self):
-        for link in self.new_links:
-            from_node_type = getattr(link.from_socket, 'renderman_type', None)
-            if not from_node_type:
-                continue            
-            if from_node_type != 'integrator':
-                node_tree = self.id_data
-                try:
-                    node_tree.links.remove(link)
-                    bpy.ops.renderman.printer('INVOKE_DEFAULT', level="ERROR", message="Link is not valid")
-                except:
-                    pass
-
-        self.new_links.clear()    
+        super().update()        
         world = getattr(bpy.context, 'world', None)
         if world:
-            world.update_tag()
+            world.update_tag()        
 
 class RendermanSamplefiltersOutputNode(RendermanShadingNode):
     bl_label = 'RenderMan Sample Filters'
@@ -905,37 +913,26 @@ class RendermanSamplefiltersOutputNode(RendermanShadingNode):
         col.operator('node.rman_add_samplefilter_node_socket', text='Add')    
         return
 
-    def insert_link(self, link):
-        if link in self.new_links:
-            pass
-        else:
-            self.new_links.append(link)
+    def accept_link(self, node_tree, link):
+        from_node_type = getattr(link.from_socket, 'renderman_type', None)
+        if not from_node_type:
+            return False            
+        if from_node_type != 'samplefilter':
+            return False
+        
+        return True
 
     def update(self):
-        for link in self.new_links:
-            from_node_type = getattr(link.from_socket, 'renderman_type', None)
-            if not from_node_type:
-                continue            
-            if from_node_type != 'samplefilter':
-                node_tree = self.id_data
-                try:
-                    node_tree.links.remove(link)
-                    bpy.ops.renderman.printer('INVOKE_DEFAULT', level="ERROR", message="Link is not valid")
-                except:
-                    pass
-
-        self.new_links.clear()  
+        super().update()        
         world = getattr(bpy.context, 'world', None)
         if world:
-            world.update_tag()
+            world.update_tag()     
 
 class RendermanDisplayfiltersOutputNode(RendermanShadingNode):
     bl_label = 'RenderMan Display Filters'
     renderman_node_type = 'displayfilters_output'
     bl_icon = 'MATERIAL'
     node_tree = None
-    new_links = []
-
     def init(self, context):
         input = self.inputs.new('RendermanNodeSocketDisplayFilter', 'displayfilter_in[0]', identifier='displayflter[0]')
         input.hide_value = True
@@ -970,29 +967,20 @@ class RendermanDisplayfiltersOutputNode(RendermanShadingNode):
         col.operator('node.rman_add_displayfilter_node_socket', text='Add')
         return
 
-    def insert_link(self, link):
-        if link in self.new_links:
-            pass
-        else:
-            self.new_links.append(link)
-
     def update(self):
-        for link in self.new_links:
-            from_node_type = getattr(link.from_socket, 'renderman_type', None)
-            if not from_node_type:
-                continue
-            if from_node_type != 'displayfilter':
-                node_tree = self.id_data
-                try:
-                    node_tree.links.remove(link)
-                    bpy.ops.renderman.printer('INVOKE_DEFAULT', level="ERROR", message="Link is not valid")
-                except:
-                    pass
-
-        self.new_links.clear()     
+        super().update()
         world = getattr(bpy.context, 'world', None)
         if world:
-            world.update_tag()
+            world.update_tag()        
+
+    def accept_link(self, node_tree, link):
+        from_node_type = getattr(link.from_socket, 'renderman_type', None)
+        if not from_node_type:
+            return False
+        if from_node_type != 'displayfilter':
+            return False
+        
+        return True
 
 class RendermanProjectionsOutputNode(RendermanShadingNode):
     bl_label = 'RenderMan Projections'
@@ -1013,30 +1001,21 @@ class RendermanProjectionsOutputNode(RendermanShadingNode):
 
     def draw_buttons_ext(self, context, layout):   
         return
-
-    def insert_link(self, link):
-        if link in self.new_links:
-            pass
-        else:
-            self.new_links.append(link)
+    
+    def accept_link(self, node_tree, link):
+        from_node_type = getattr(link.from_socket, 'renderman_type', None)
+        if not from_node_type:
+            return False            
+        if from_node_type != 'projection':
+            return False
+        
+        return True
 
     def update(self):
-        for link in self.new_links:
-            from_node_type = getattr(link.from_socket, 'renderman_type', None)
-            if not from_node_type:
-                continue            
-            if from_node_type != 'projection':
-                node_tree = self.id_data
-                try:
-                    node_tree.links.remove(link)
-                    bpy.ops.renderman.printer('INVOKE_DEFAULT', level="ERROR", message="Link is not valid")
-                except:
-                    pass
-
-        self.new_links.clear()    
+        super().update()        
         cam = getattr(bpy.context, 'active_object', None)
         if cam:
-            cam.update_tag(refresh={'DATA'})        
+            cam.update_tag(refresh={'DATA'})            
 
 class RendermanBxdfNode(RendermanShadingNode):
     bl_label = 'Bxdf'
@@ -1052,60 +1031,9 @@ class RendermanPatternNode(RendermanShadingNode):
     bl_type = 'CUSTOM'
     bl_static_type = 'CUSTOM'
     node_tree = None
-    new_links = []    
 
-    def insert_link(self, link):
-        if link in self.new_links:
-            pass
-        else:
-            self.new_links.append(link)
-
-    def update(self):
-        for link in self.new_links:
-            from_node_type = getattr(link.from_socket, 'renderman_type', None)
-            to_node_type = getattr(link.to_socket, 'renderman_type', None)
-            if not from_node_type:
-                continue            
-            if not to_node_type:
-                continue            
-
-            if not shadergraph_utils.is_socket_same_type(link.from_socket, link.to_socket):
-                node_tree = self.id_data
-                try:
-                    from_node = node_tree.nodes[link.from_node.name]
-                    to_node = node_tree.nodes[link.to_node.name]
-                    from_socket = from_node.outputs[link.from_socket.name]
-                    to_socket = to_node.inputs[link.to_socket.name]
-                    
-                    if shadergraph_utils.is_socket_float_type(from_socket) and shadergraph_utils.is_socket_float3_type(to_socket):
-                        # allow for float -> float3 like connections
-                        pass
-                    elif shadergraph_utils.is_socket_float3_type(from_socket) and shadergraph_utils.is_socket_float_type(to_socket):
-                        # allow for float3 -> float/int connections
-                        pass
-                    else:
-                        node_tree.links.remove(link)
-                        bpy.ops.renderman.printer('INVOKE_DEFAULT', level="ERROR", message="Link is not valid")
-
-                except:
-                    pass
-
-
-            # if this is a struct, check that the struct name matches
-            elif from_node_type == 'struct':
-                if link.from_socket.struct_name != link.to_socket.struct_name:
-                    node_tree = self.id_data
-                    try:
-                        node_tree.links.remove(link)
-                        bpy.ops.renderman.printer('INVOKE_DEFAULT', level="ERROR", message="Struct names do not match")
-                    except:
-                        pass
-
-        self.new_links.clear()    
-        ob = getattr(bpy.context, 'active_object', None)
-        if ob:
-            ob.update_tag(refresh={'DATA'})            
-
+    def accept_link(self, node_tree, link):
+        return super().accept_link(node_tree, link)
 
 class RendermanLightNode(RendermanShadingNode):
     bl_label = 'Light'
