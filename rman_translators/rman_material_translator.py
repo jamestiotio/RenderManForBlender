@@ -297,9 +297,10 @@ class RmanMaterialTranslator(RmanTranslator):
         rix_params = sg_node.params
         # use the material's Viewport Display properties
         diffuse_color = string_utils.convert_val(mat.diffuse_color, type_hint='color')
-        # color is RGBA, so assign alpha separately
-        rix_params.SetColor('baseColor', diffuse_color[:3])
-        rix_params.SetFloat('presence', diffuse_color[3])
+        rix_params.SetColor('baseColor', diffuse_color)
+        if len(mat.diffuse_color) == 4:
+            # use the alpha from diffuse_color as presence
+            rix_params.SetFloat('presence', mat.diffuse_color[3])
         rix_params.SetFloat('metallic', mat.metallic )
         rix_params.SetFloat('roughness', mat.roughness)
         rix_params.SetFloat('specReflectScale', mat.metallic )
