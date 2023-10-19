@@ -205,7 +205,7 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
             # Add Subdiv Sheme
             rman_subdiv = rfb_icons.get_icon("rman_subdiv")
             layout.operator("mesh.rman_convert_subdiv",
-                            text="Convert to Subdiv", icon_value=rman_subdiv.icon_id)
+                            icon_value=rman_subdiv.icon_id)
 
             layout.separator()
             layout.menu('VIEW3D_MT_RM_Add_Export_Menu', icon_value=VIEW3D_MT_RM_Add_Export_Menu.get_icon_id())

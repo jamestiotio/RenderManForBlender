@@ -393,7 +393,7 @@ class RmanMeshTranslator(RmanTranslator):
         ob.to_mesh_clear()
 
     def update(self, ob, rman_sg_mesh, input_mesh=None, sg_node=None):
-        rm = ob.renderman
+        rm = ob.original.data.renderman
         mesh = input_mesh
         if not mesh:
             mesh = ob.to_mesh()
@@ -403,9 +403,13 @@ class RmanMeshTranslator(RmanTranslator):
         if not sg_node:
             sg_node = rman_sg_mesh.sg_mesh
 
-        rman_sg_mesh.is_subdiv = object_utils.is_subdmesh(ob)
-        use_smooth_normals = getattr(ob.data.renderman, 'rman_smoothnormals', False)
+        rman_sg_mesh.is_subdiv = object_utils.is_subdmesh(ob.original)
+        use_subdiv_modifer = (rman_sg_mesh.is_subdiv and rm.rman_subdiv_scheme == "none")
+        use_smooth_normals = getattr(rm, 'rman_smoothnormals', False)
         get_normals = (rman_sg_mesh.is_subdiv == 0 and not use_smooth_normals)
+        if use_subdiv_modifer:
+            # always get the normals when we're using the subdiv modifier
+            get_normals = True
         (nverts, verts, P, N) = mesh_utils.get_mesh(mesh, get_normals=get_normals)
         
         # if this is empty continue:
@@ -450,20 +454,23 @@ class RmanMeshTranslator(RmanTranslator):
 
         if rman_sg_mesh.is_subdiv:
             creases = self._get_subd_tags_(ob, mesh, primvar)
-            if ob.data.renderman.rman_subdiv_scheme == 'none':
+            if use_subdiv_modifer:
                 # we were tagged as a subdiv by a modifier
-                sg_node.SetScheme(self.rman_scene.rman.Tokens.Rix.k_catmullclark) 
+                # use bilinear
+                sg_node.SetScheme(self.rman_scene.rman.Tokens.Rix.k_bilinear) 
             else:
-                sg_node.SetScheme(ob.data.renderman.rman_subdiv_scheme) 
+                sg_node.SetScheme(rm.rman_subdiv_scheme) 
 
         else:
             sg_node.SetScheme(None)
+
+        if not rman_sg_mesh.is_subdiv or use_subdiv_modifer:
             if N:
                 if len(N) == numnverts:
                     primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "facevarying")         
                 else:
                     primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "uniform")         
-        subdiv_scheme = getattr(ob.data.renderman, 'rman_subdiv_scheme', 'none')
+        subdiv_scheme = getattr(rm, 'rman_subdiv_scheme', 'none')
         rman_sg_mesh.subdiv_scheme = subdiv_scheme
 
         super().export_object_primvars(ob, primvar)

@@ -166,8 +166,8 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
 
 class PRMAN_OT_RM_Add_Subdiv_Scheme(bpy.types.Operator):
     bl_idname = "mesh.rman_convert_subdiv"
-    bl_label = "Convert to Subdiv"
-    bl_description = "Convert selected object to a subdivision surface"
+    bl_label = "Convert to RenderMan Subdiv"
+    bl_description = "Convert selected object to a RenderMan subdivision surface. Note, this will take precedence over any subdiv modifiers that are already attached to the object."
     bl_options = {"REGISTER"}
 
     def execute(self, context):

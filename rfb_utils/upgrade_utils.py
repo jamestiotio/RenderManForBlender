@@ -1,5 +1,5 @@
 from .. import rman_constants
-from ..rfb_utils import shadergraph_utils
+from ..rfb_utils import shadergraph_utils, object_utils
 from ..rfb_logger import rfb_log
 from collections import OrderedDict
 import bpy
@@ -215,7 +215,25 @@ def upgrade_250_1(scene):
                 node_name = n.name
                 nt.nodes.remove(n)
                 new_node.name = node_name   
-                new_node.select = False                       
+                new_node.select = False          
+
+def upgrade_260_0(scene):
+    '''
+    Update all meshes with the subdiv modifier. 
+    
+    In 25 and below, we used to always render meshes 
+    that had the subdiv modifer as catmull-clark subdivs.
+    However, in 26, we've changed it so that we render those with the bilinear scheme; this 
+    allows for the viewport and render levels to actually do something.
+
+    To make sure older scenes still render correctly, explicitly set the rman_subdiv_scheme
+    attribute to "catmull-clark", since that setting takes precedence over
+    the subdiv modifiers. 
+    '''
+    for ob in bpy.data.objects:
+        if ob.type == "MESH" and object_utils.is_subd_last(ob):
+            ob.data.renderman.rman_subdiv_scheme = 'catmull-clark'
+    
 
 __RMAN_SCENE_UPGRADE_FUNCTIONS__ = OrderedDict()
     
@@ -223,6 +241,7 @@ __RMAN_SCENE_UPGRADE_FUNCTIONS__['24.2'] = upgrade_242
 __RMAN_SCENE_UPGRADE_FUNCTIONS__['24.3'] = upgrade_243
 __RMAN_SCENE_UPGRADE_FUNCTIONS__['25.0'] = upgrade_250
 __RMAN_SCENE_UPGRADE_FUNCTIONS__['25.0.1'] = upgrade_250_1
+__RMAN_SCENE_UPGRADE_FUNCTIONS__['26.0.0'] = upgrade_260_0
 
 def upgrade_scene(bl_scene):
     global __RMAN_SCENE_UPGRADE_FUNCTIONS__
