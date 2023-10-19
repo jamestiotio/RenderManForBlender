@@ -19,6 +19,10 @@ BLENDER_VERSION = bpy.app.version
 # addons are to use the gpu module
 USE_GPU_MODULE = ( BLENDER_VERSION_MAJOR == 3 and BLENDER_VERSION_MINOR >= 5)
 
+# Starting Blender 3.6, Blender will now hand us metaballs in the depsgraph
+# we can ignore "META" objects
+META_AS_MESH = ( BLENDER_VERSION_MAJOR == 3 and BLENDER_VERSION_MINOR >= 6)
+
 BLENDER_HAS_CURVES_NODE = (BLENDER_VERSION_MAJOR == 3 and BLENDER_VERSION_MINOR >= 3)
 
 BLENDER_SUPPORTED_VERSION_MAJOR = 2
