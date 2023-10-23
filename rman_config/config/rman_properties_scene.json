@@ -111,7 +111,52 @@
                 "conditionalVis2Path": "current_platform",
                 "conditionalVis2Value": "macOS"     
             }             
-        },                
+        },  
+        {
+            "panel": "",
+            "page": "Display",
+            "name": "blender_ipr_denoiser",
+            "label": "Viewport Denoiser",
+            "type": "int",
+            "default": 0,
+            "help": "Select which denoiser to use to denoise viewport renders. Note, Optix requires an Nvidia GPU.",
+            "widget": "mapper",
+            "options": "None:0|RenderMan Denoiser:1|Optix:2"
+        },   
+        {
+            "panel": "",
+            "page": "Display",
+            "name": "blender_ipr_aidenoiser_cheapFirstPass",
+            "label": "Cheap First Pass",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "If checked, the first denoise pass will use a cheaper (slightly faster but lower quality) heuristic. This can be useful if rendering something that is converging very quickly and you want to prioritize getting a denoised result faster.",
+            "update_function_name": "update_blender_ipr_aidenoiser_cheapFirstPass",
+            "update_function": "def update_blender_ipr_aidenoiser_cheapFirstPass(self, context):\n    from ..rfb_utils.envconfig_utils import envconfig\n    envconfig().set_qn_env_vars(context.scene)"
+        },     
+        {
+            "panel": "",
+            "page": "Display",
+            "name": "blender_ipr_aidenoiser_minSamples",
+            "label": "Min Samples",
+            "type": "int",
+            "default": 2,
+            "help": "The minimum number of average samples per bucket before interactive denoising runs for the first time. Changing this preference requires a render restart to be respected",
+            "update_function_name": "update_blender_ipr_aidenoiser_minSamples",
+            "update_function": "def update_blender_ipr_aidenoiser_minSamples(self, context):\n    from ..rfb_utils.envconfig_utils import envconfig\n    envconfig().set_qn_env_vars(context.scene)"            
+        },  
+        {
+            "panel": "",
+            "page": "Display",
+            "name": "blender_ipr_aidenoiser_interval",
+            "label": "Interval",
+            "type": "int",
+            "default": 4,
+            "help": "The time interval between denoising runs (in seconds).",
+            "update_function_name": "update_blender_ipr_aidenoiser_interval",
+            "update_function": "def update_blender_ipr_aidenoiser_interval(self, context):\n    from ..rfb_utils.envconfig_utils import envconfig\n    envconfig().set_qn_env_vars(context.scene)"            
+        },                                                 
         {
             "panel": "",
             "page": "",

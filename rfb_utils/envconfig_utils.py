@@ -71,6 +71,12 @@ class RmanEnvConfig(object):
     def config_environment(self):
 
         self.setenv('RMANTREE', self.rmantree)
+        ext = '.so'
+        if sys.platform == ("win32"):
+                ext = '.dll'
+        dspy = os.path.join(self.rmantree, 'lib', 'plugins', 'd_blender%s' % ext)
+        self.setenv('RMAN_QN_DISPLAY', dspy)
+
         self._append_to_path(os.path.join(self.rmantree, 'bin'))
         self._set_it_path()
         self._set_localqueue_path()
@@ -86,6 +92,13 @@ class RmanEnvConfig(object):
 
     def copyenv(self):
         return os.environ.copy()
+    
+    def set_qn_env_vars(self, bl_scene):
+        rm = bl_scene.renderman
+        diff_spec_only = not rm.blender_ipr_aidenoiser_cheapFirstPass
+        self.setenv('RMAN_QN_DIFFSPEC_ONLY', str(diff_spec_only))
+        self.setenv('RMAN_QN_MIN_SAMPLES', str(rm.blender_ipr_aidenoiser_minSamples))
+        self.setenv('RMAN_QN_INTERVAL', str(rm.blender_ipr_aidenoiser_interval))
 
     def read_envvars_file(self):
         bl_config_path = bpy.utils.user_resource('CONFIG')

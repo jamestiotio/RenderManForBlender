@@ -43,6 +43,7 @@ from .rman_handlers.rman_it_handlers import add_ipr_to_it_handlers, remove_ipr_t
 __RMAN_RENDER__ = None
 __RMAN_IT_PORT__ = -1
 __BLENDER_DSPY_PLUGIN__ = None
+__D_QUICKLYNOISELESS__ = None
 __DRAW_THREAD__ = None
 __RMAN_STATS_THREAD__ = None
 
@@ -274,6 +275,7 @@ def preload_dsos(rman_render):
         'lib/plugins/PxrSurface.so',
         'lib/plugins/PxrDisneyBsdf.so',
         'lib/libstats.so',
+        'lib/plugins/d_quicklyNoiseless.so'
     ]
 
     tree = envconfig().rmantree    
@@ -285,6 +287,24 @@ def preload_dsos(rman_render):
         except OSError as error:
             rfb_log().debug('Failed to preload {0}: {1}'.format(plugin_path, error))
 
+def preload_quicklynoiseless():
+    global __D_QUICKLYNOISELESS__
+    if __D_QUICKLYNOISELESS__ is None:
+        if sys.platform != 'linux':
+            return
+
+        plugin = 'lib/plugins/d_quicklyNoiseless.so'
+        tree = envconfig().rmantree    
+        plugin_path = os.path.join(tree, plugin)
+        try:
+            __D_QUICKLYNOISELESS__ = ctypes.CDLL(plugin_path)
+        except OSError as error:
+            rfb_log().debug('Failed to preload {0}: {1}'.format(plugin_path, error))
+
+def unload_quicklynoiseless():
+    global __D_QUICKLYNOISELESS__
+    if __D_QUICKLYNOISELESS__ is not None:
+        del __D_QUICKLYNOISELESS__    
 
 class BlRenderResultHelper:
     def __init__(self, rman_render, bl_scene, dspy_dict):
@@ -602,6 +622,8 @@ class RmanRender(object):
         return (self.rman_interactive_running and self.rman_scene.ipr_render_into == 'it')
 
     def do_draw_buckets(self):
+        if self.bl_scene.renderman.blender_ipr_denoiser == display_utils.__RFB_DENOISER_AI__:
+            return False
         return get_pref('rman_viewport_draw_bucket', default=True) and self.rman_is_refining
 
     def do_draw_progressbar(self):
@@ -1083,7 +1105,8 @@ class RmanRender(object):
                 ec.RegisterCallback("Render", live_render_cb, self)
                 self.rman_callbacks["Render"] = live_render_cb                    
                 self.viewport_buckets.clear()
-                self._draw_viewport_buckets = True                           
+                self._draw_viewport_buckets = True     
+                preload_quicklynoiseless()                      
             else:
                 rman.Dspy.EnableDspyServer()
                 add_ipr_to_it_handlers()
@@ -1266,6 +1289,8 @@ class RmanRender(object):
         global __DRAW_THREAD__
         global __RMAN_STATS_THREAD__
         is_main_thread = (threading.current_thread() == threading.main_thread())
+        unload_quicklynoiseless()
+        self.reset_redraw_func()
 
         if is_main_thread:
             rfb_log().debug("Trying to acquire stop_render_mtx")
@@ -1338,6 +1363,11 @@ class RmanRender(object):
         # pass our callback function to the display driver
         dspy_plugin = self.get_blender_dspy_plugin()
         dspy_plugin.SetRedrawCallback(__CALLBACK_FUNC__)
+
+    def reset_redraw_func(self):
+        # pass our callback function to the display driver
+        dspy_plugin = self.get_blender_dspy_plugin()
+        dspy_plugin.SetRedrawCallback(None)        
 
     def has_buffer_updated(self):        
         dspy_plugin = self.get_blender_dspy_plugin()

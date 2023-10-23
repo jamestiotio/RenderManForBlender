@@ -3,6 +3,7 @@ from ..rfb_utils import texture_utils
 from ..rfb_utils import string_utils
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import upgrade_utils
+from ..rfb_utils.envconfig_utils import envconfig
 from bpy.app.handlers import persistent
 import bpy
 import os
@@ -18,6 +19,11 @@ if sys.platform == ("win32"):
 else:
     __BL_TMP_DIR__ = '/tmp'
 
+def set_qn_env_vars(bl_scene):
+    if not bl_scene or not isinstance(bl_scene, bpy.types.Scene):
+        bl_scene = bpy.context.scene
+    envconfig().set_qn_env_vars(bl_scene)
+
 @persistent
 def rman_load_post(bl_scene):
     from ..rman_ui import rman_ui_light_handlers
@@ -28,6 +34,7 @@ def rman_load_post(bl_scene):
     texture_utils.txmanager_load_cb(bl_scene)
     upgrade_utils.upgrade_scene(bl_scene)
     scene_utils.add_global_vol_aggregate()
+    set_qn_env_vars(bl_scene)
 
 @persistent
 def rman_save_pre(bl_scene):

@@ -902,11 +902,15 @@ class PRMAN_PT_Viewport_Options(Panel):
         if prefs.rman_viewport_draw_progress:
             col.prop(prefs, 'rman_viewport_progress_color')
         col.prop(prefs, 'rman_enhance_zoom_factor')
-        if rm.current_platform != ("macOS"):
-            col = layout.column(align=True)
-            col.prop(rm, 'blender_ipr_optix_denoiser')
-            if rman_render.rman_interactive_running:
-                col.enabled = False
+        
+        col = layout.column(align=True)
+        col.prop(rm, 'blender_ipr_denoiser')
+        if rm.blender_ipr_denoiser == display_utils.__RFB_DENOISER_AI__:
+            col.prop(rm, 'blender_ipr_aidenoiser_cheapFirstPass')
+            col.prop(rm, 'blender_ipr_aidenoiser_minSamples')
+            col.prop(rm, 'blender_ipr_aidenoiser_interval')
+        if rman_render.rman_interactive_running:
+            col.enabled = False
 
         if rm.current_platform != ("macOS") and rm.has_xpu_license:
             col = layout.column(align=True)
