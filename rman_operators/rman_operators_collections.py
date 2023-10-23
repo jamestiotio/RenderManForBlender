@@ -448,7 +448,7 @@ class PRMAN_OT_add_to_group(bpy.types.Operator):
             op = getattr(context, 'op_ptr')
             if op:
                 op.selected_obj_name = '0'             
-            ob.update_tag(refresh={'OBJECT'})    
+            ob.update_tag(refresh={'DATA'})    
 
     def add_scene_selected(self, context):
         scene = context.scene
@@ -469,7 +469,7 @@ class PRMAN_OT_add_to_group(bpy.types.Operator):
                 ob_in_group = object_group.members.add()
                 ob_in_group.name = ob.name
                 ob_in_group.ob_pointer = ob      
-                ob.update_tag(refresh={'OBJECT'})          
+                ob.update_tag(refresh={'DATA'})          
 
     def execute(self, context):
         if self.properties.do_scene_selected:
@@ -499,7 +499,7 @@ class PRMAN_OT_remove_from_group(bpy.types.Operator):
         for i, member in enumerate(object_group.members):
             if member.ob_pointer == ob:
                 object_group.members.remove(i)
-                ob.update_tag(refresh={'OBJECT'})
+                ob.update_tag(refresh={'DATA'})
                 break
 
         return {'FINISHED'}
