@@ -178,7 +178,7 @@ if not bpy.app.background:
 
             # now tell each object to update
             for ob in ob_list:
-                ob.update_tag(refresh={'OBJECT'})
+                ob.update_tag(refresh={'DATA'})
 
             self.refresh_groups()       
 
@@ -193,7 +193,7 @@ if not bpy.app.background:
             self.label_2.setText("Objects (%s)" % item.text())
             for member in grp.members:
                 ob = member.ob_pointer
-                ob.update_tag(refresh={'OBJECT'})        
+                ob.update_tag(refresh={'DATA'})        
 
         def find_item(self, standard_item, ob):
             '''
@@ -326,7 +326,7 @@ if not bpy.app.background:
                 for i, member in enumerate(object_group.members):
                     if ob == member.ob_pointer:
                         object_group.members.remove(i)
-                        ob.update_tag(refresh={'OBJECT'}) 
+                        ob.update_tag(refresh={'DATA'}) 
                         break                    
 
             obs = []
@@ -345,7 +345,7 @@ if not bpy.app.background:
                     ob_in_group = object_group.members.add()
                     ob_in_group.name = ob.name
                     ob_in_group.ob_pointer = ob      
-                    ob.update_tag(refresh={'OBJECT'})                   
+                    ob.update_tag(refresh={'DATA'})                   
             self.bl_select_objects(obs)
                 
 class RENDERMAN_UL_Object_Group_List(bpy.types.UIList):
