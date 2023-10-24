@@ -1145,22 +1145,13 @@ def draw_cheat_shadow_lightfilter(ob):
     m = ob_matrix @ __MTX_Y_180__ 
     m = m @ __MTX_Y_NEG_90__
 
-    disk = [m @ Vector(pt) for pt in s_diskLight]
-    disk_indices = _get_indices(s_diskLight)
-    draw_line_shape(ob, _SHADER_, disk, disk_indices)
+    box = [m @ Vector(pt) for pt in s_rmanLightLogo['box']]
+    box_indices = _get_indices(s_rmanLightLogo['box'])
+    draw_line_shape(ob, _SHADER_, box, box_indices)
 
     arrow = [m @ Vector(pt) for pt in s_rmanLightLogo['arrow']]
     arrow_indices = _get_indices(s_rmanLightLogo['arrow'])
     draw_line_shape(ob, _SHADER_, arrow, arrow_indices)
-
-    R_outside = [m @ Vector(pt) for pt in s_rmanLightLogo['R_outside']]
-    R_outside_indices = _get_indices(s_rmanLightLogo['R_outside'])
-    draw_line_shape(ob, _SHADER_, R_outside, R_outside_indices)
-  
-    R_inside = [m @ Vector(pt) for pt in s_rmanLightLogo['R_inside']]
-    R_inside_indices = _get_indices(s_rmanLightLogo['R_inside'])
-    draw_line_shape(ob, _SHADER_, R_inside, R_inside_indices)
-      
 
 def draw_disk_light(ob): 
     global _FRUSTUM_DRAW_HELPER_
