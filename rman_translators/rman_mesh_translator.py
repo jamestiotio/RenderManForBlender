@@ -410,7 +410,11 @@ class RmanMeshTranslator(RmanTranslator):
         if use_subdiv_modifer:
             # always get the normals when we're using the subdiv modifier
             get_normals = True
-        (nverts, verts, P, N) = mesh_utils.get_mesh(mesh, get_normals=get_normals)
+        rman_mesh = mesh_utils.get_mesh(mesh, get_normals=get_normals)
+        nverts = rman_mesh.nverts
+        verts = rman_mesh.verts
+        P = rman_mesh.P
+        N = rman_mesh.N
         
         # if this is empty continue:
         if nverts == []:

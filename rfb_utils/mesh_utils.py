@@ -1,5 +1,18 @@
 import numpy as np
 
+class RmanMesh:
+    def __init__(self, *args, **kwargs):
+        self.nverts = args[0]
+        self.verts = args[1]
+        self.P = args[2]
+        self.N = args[3]
+
+    def __eq__(self, other):
+        if self.nverts != other.nverts or self.verts != other.verts or self.P != other.P or self.N != other.N:
+            return False
+        return True
+
+
 def get_mesh_points_(mesh):
     '''
     Get just the points for the input mesh.
@@ -58,4 +71,5 @@ def get_mesh(mesh, get_normals=False):
             fastnormals = np.reshape(fastnormals, (npolygons, 3))
             N = fastnormals.tolist()
 
-    return (nverts, verts, P, N)
+    rman_mesh = RmanMesh(nverts, verts, P, N)
+    return rman_mesh

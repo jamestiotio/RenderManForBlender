@@ -341,11 +341,32 @@ class PRMAN_OT_Renderman_Start_Debug_Server(bpy.types.Operator):
         context.window_manager.modal_handler_add(self)
         
         return {'RUNNING_MODAL'}
+    
+class PRMAN_OT_Renderman_Run_Unit_Tests(bpy.types.Operator):
+    bl_idname = "renderman.run_unit_tests"
+    bl_label = "Run Unit Tests"
+    bl_description = "Run unit tests"
+    bl_options = {'INTERNAL'}
+
+    @classmethod
+    def poll(cls, context):
+        return (context.engine == "PRMAN_RENDER")
+
+    def execute(self, context):
+        from .. import rfb_unittests
+        msg = rfb_unittests.run_rfb_unittests()
+        if msg is None:
+            self.report({'INFO'}, 'All tests passed')
+        else:
+            self.report({'ERROR'}, msg)
+
+        return {"FINISHED"}        
 
 classes = [
    PRMAN_OT_Renderman_Upgrade_Scene,
    PRMAN_OT_Renderman_Package,
-   PRMAN_OT_Renderman_Start_Debug_Server
+   PRMAN_OT_Renderman_Start_Debug_Server,
+   PRMAN_OT_Renderman_Run_Unit_Tests
 ]
 
 def register():

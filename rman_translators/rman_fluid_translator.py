@@ -114,7 +114,12 @@ class RmanFluidTranslator(RmanTranslator):
     def update_fluid_mesh(self, ob, rman_sg_fluid, psys, fluid_data):
         sg_node = rman_sg_fluid.rman_sg_liquid_node
         mesh = ob.data
-        (nverts, verts, P, N) = mesh_utils.get_mesh(mesh, get_normals=True)
+        rman_mesh = mesh_utils.get_mesh(mesh, get_normals=True)
+        nverts = rman_mesh.nverts
+        verts = rman_mesh.verts
+        P = rman_mesh.P
+        N = rman_mesh.N
+
         npolys = len(nverts) 
         npoints = len(P)
         numnverts = len(verts)
