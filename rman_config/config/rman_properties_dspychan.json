@@ -84,13 +84,13 @@
         {
             "panel": "RENDER_PT_layer_custom_aovs",            
             "name": "chan_pixelfilter",
-            "label": "Filter Rule",
+            "label": "Accumulation Rule",
             "type": "string",
             "default": "default",
             "page": "Filter",
             "widget": "popup",
             "options": "default|min|max|average|zmin|zmax|sum",
-            "help": "The name of the pixel filter to be used for the output display. In addition, five special filters may be used: min, max, average, zmin, and zmax. The first three filters have the same meaning as the depthfilter argument to Hider, i.e. instead of running a convolution filter across all samples, only a single value (the minimum, maximum, or average of all pixel samples) is returned and written into the final pixel value. The zmin and zmax filters operate like the min and max filters, except that the depth value of the pixel sample is used for comparison, and not the value implied by the mode itself. These filters are useful for arbitrary output variables where standard alpha compositing does not make sense, or where linear interpolation of values between disjoint pieces of geometry is nonsensical. Note that when these filters are used, opacity thresholding is also used on that output to determine which closest surface to sample.",
+            "help": "The name of the accumulation rule to be used for the display channel. default will use the global filter. min, max, average have the same meaning as the depthfilter argument to Hider, i.e. instead of running a convolution filter across all samples, only a single value (the minimum, maximum, or average of all pixel samples) is returned and written into the final pixel value. The zmin and zmax filters operate like the min and max filters, except that the depth value of the pixel sample is used for comparison, and not the value implied by the mode itself. These filters are useful for arbitrary output variables where standard alpha compositing does not make sense, or where linear interpolation of values between disjoint pieces of geometry is nonsensical. Note that when these filters are used, opacity thresholding is also used on that output to determine which closest surface to sample.",
             "conditionalVisOps": {
                 "conditionalVisOp": "equalTo",
                 "conditionalVisPath": "show_advanced",
