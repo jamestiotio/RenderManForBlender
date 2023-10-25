@@ -334,9 +334,9 @@ class RmanMeshTranslator(RmanTranslator):
 
     def export(self, ob, db_name):
         
-        sg_node = self.rman_scene.sg_scene.CreateGroup(db_name)
+        sg_node = self.rman_scene.sg_scene.CreateGroup('')
         rman_sg_mesh = RmanSgMesh(self.rman_scene, sg_node, db_name)
-        rman_sg_mesh.sg_mesh = self.rman_scene.sg_scene.CreateMesh('')
+        rman_sg_mesh.sg_mesh = self.rman_scene.sg_scene.CreateMesh(db_name)
         rman_sg_mesh.sg_node.AddChild(rman_sg_mesh.sg_mesh)
 
         if self.rman_scene.do_motion_blur:
@@ -470,6 +470,7 @@ class RmanMeshTranslator(RmanTranslator):
 
         if rman_sg_mesh.is_multi_material:
             material_ids = _get_material_ids(ob, mesh)
+            i = 1
             for mat_id, faces in \
                 _get_mats_faces_(nverts, material_ids).items():
 
@@ -488,7 +489,8 @@ class RmanMeshTranslator(RmanTranslator):
                     primvar.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_shade_faceset, faces, len(faces))
                     scenegraph_utils.set_material(sg_node, sg_material.sg_node)
                 else:                
-                    sg_sub_mesh =  self.rman_scene.sg_scene.CreateMesh("")
+                    sg_sub_mesh =  self.rman_scene.sg_scene.CreateMesh("%s-%d" % (rman_sg_mesh.db_name, i))
+                    i += 1
                     sg_sub_mesh.Define( npolys, npoints, numnverts )                   
                     if rman_sg_mesh.is_subdiv:
                         sg_sub_mesh.SetScheme(self.rman_scene.rman.Tokens.Rix.k_catmullclark)
