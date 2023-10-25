@@ -639,12 +639,17 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                     rfb_log().debug("Cannot remove link: %s" % str(e))
                     pass       
 
+        do_update = False
         if RendermanShadingNode.new_links:
+            do_update = True
             RendermanShadingNode.new_links.clear()
 
         if RendermanShadingNode.num_links != len(node_tree.links):
-            self.id_data.update_tag()
+            do_update = True
             RendermanShadingNode.num_links = len(node_tree.links)
+        
+        if do_update:
+            self.id_data.update_tag()
 
     @classmethod
     def poll(cls, ntree):
