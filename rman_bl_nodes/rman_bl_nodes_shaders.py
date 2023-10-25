@@ -28,6 +28,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
     bl_label = 'Output'
     prev_hidden: BoolProperty(default=False, description="Whether or not this node was previously hidden.")
     new_links = []
+    num_links = -1
 
     def update_mat(self, mat):
         if self.renderman_node_type == 'bxdf' and self.outputs['bxdf_out'].is_linked:
@@ -601,8 +602,11 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                     pass       
 
         if RendermanShadingNode.new_links:
-            self.id_data.update_tag()
             RendermanShadingNode.new_links.clear()
+
+        if RendermanShadingNode.num_links != len(node_tree.links):
+            self.id_data.update_tag()
+            RendermanShadingNode.num_links = len(node_tree.links)
 
     @classmethod
     def poll(cls, ntree):
