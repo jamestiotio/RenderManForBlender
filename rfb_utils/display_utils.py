@@ -720,10 +720,7 @@ def get_dspy_dict(rman_scene, expandTokens=True, include_holdouts=True):
         # we ignore the display driver setting in the AOV and render to whatever
         # render_into is set to
         display_driver = rm.render_into
-        if rm.blender_denoiser == __RFB_DENOISER_AI__ and rm.render_into == 'blender':
-            display_driver = 'quicklyNoiseless' 
-        elif rm.blender_denoiser == __RFB_DENOISER_OPTIX__:
-            do_optix_denoise = True        
+        do_optix_denoise = rm.blender_optix_denoiser
             
     if rm_rl:     
         _set_rman_dspy_dict(rm_rl, dspys_dict, display_driver, rman_scene, expandTokens, do_optix_denoise=do_optix_denoise)        
