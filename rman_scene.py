@@ -1157,8 +1157,8 @@ class RmanScene(object):
             options.SetInteger(self.rman.Tokens.Rix.k_limits_threads, rm.threads)
 
         # pixelfilter
-        options.SetString(self.rman.Tokens.Rix.k_Ri_PixelFilterName, rm.ri_displayFilter)
-        options.SetFloatArray(self.rman.Tokens.Rix.k_Ri_PixelFilterWidth, (rm.ri_displayFilterSize[0], rm.ri_displayFilterSize[1]), 2)
+        # options.SetString(self.rman.Tokens.Rix.k_Ri_PixelFilterName, rm.ri_displayFilter)
+        # options.SetFloatArray(self.rman.Tokens.Rix.k_Ri_PixelFilterWidth, (rm.ri_displayFilterSize[0], rm.ri_displayFilterSize[1]), 2)
 
         # checkpointing
         if not self.is_interactive and rm.enable_checkpoint:
@@ -1427,6 +1427,11 @@ class RmanScene(object):
 
             if chan_filter != 'default':
                 displaychannel.params.SetString("filter", chan_filter)
+            else:
+                # Use the global filter.
+                # This is temporary until RixSceneGraph/riley gets fixed
+                displaychannel.params.SetString("filter", rm.ri_displayFilter)
+                displaychannel.params.SetFloatArray("filterwidth", rm.ri_displayFilterSize, 2)                
 
             if chan_statistics and chan_statistics != 'none':
                 displaychannel.params.SetString("statistics", chan_statistics)
@@ -1540,6 +1545,11 @@ class RmanScene(object):
 
             if chan_filter != 'default':
                 displaychannel.params.SetString("filter", chan_filter)
+            else:
+                # Use the global filter.
+                # This is temporary until RixSceneGraph/riley gets fixed
+                displaychannel.params.SetString("filter", rm.ri_displayFilter)
+                displaychannel.params.SetFloatArray("filterwidth", rm.ri_displayFilterSize, 2)
 
             if chan_statistics and chan_statistics != 'none':
                 displaychannel.params.SetString("statistics", chan_statistics)

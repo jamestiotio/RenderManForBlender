@@ -895,7 +895,6 @@
             "panel": "RENDER_PT_renderman_sampling",            
             "page": "Filter",
             "name": "ri_displayFilter",
-            "riopt": "Ri:PixelFilterName",
             "label": "Filter",
             "type": "string",
             "default": "gaussian",
@@ -907,7 +906,6 @@
             "panel": "RENDER_PT_renderman_sampling",                        
             "page": "Filter",
             "name": "ri_displayFilterSize",
-            "riopt": "Ri:PixelFilterWidth",
             "label": "Filter Size",
             "type": "float2",
             "default": [
