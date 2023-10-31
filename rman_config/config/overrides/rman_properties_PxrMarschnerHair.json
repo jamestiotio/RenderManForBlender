@@ -1,0 +1,13 @@
+{
+    "name": "PxrMarschnerHair.args",
+    "params": [
+        {
+            "name": "specularColorTRT",    
+            "label": "Specular Color TRT"
+        },
+        {
+            "name": "specularColorTT",
+            "label": "Specular Color TT"
+        }        
+    ]
+}
