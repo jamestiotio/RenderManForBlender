@@ -144,6 +144,7 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
             context.view_layer.objects.active.select_set(False)
         ob.select_set(True)
         context.view_layer.objects.active = ob  
+        ob.location = context.scene.cursor.location
         
         return {"FINISHED"}    
         
@@ -198,6 +199,7 @@ class PRMAN_OT_RM_Add_Light(bpy.types.Operator):
     def execute(self, context):
         light = bpy.data.lights.new(self.rman_light_name, 'AREA')
         light_ob = bpy.data.objects.new(self.rman_light_name, light)
+        light_ob.location = context.scene.cursor.location
         
         light.renderman.renderman_light_role = 'RMAN_LIGHT'
         light.renderman.renderman_lock_light_type = True
@@ -241,9 +243,12 @@ class PRMAN_OT_RM_Add_Light_Filter(bpy.types.Operator):
         info = get_description('lightfilter', properties.rman_lightfilter_name)
         return info    
 
-    def create_lightfilter(self, context):
+    def create_lightfilter(self, context, create_at_cursor=True):
         light_filter = bpy.data.lights.new(self.rman_lightfilter_name, 'AREA')
-        light_filter_ob = bpy.data.objects.new(self.rman_lightfilter_name, light_filter)        
+        light_filter_ob = bpy.data.objects.new(self.rman_lightfilter_name, light_filter)  
+        do_parent = prefs_utils.get_pref('rman_parent_lightfilter')
+        if create_at_cursor:
+            light_filter_ob.location = context.scene.cursor.location
 
         light_filter.renderman.renderman_light_role = 'RMAN_LIGHTFILTER'
         light_filter.renderman.renderman_lock_light_type = True
@@ -284,7 +289,7 @@ class PRMAN_OT_RM_Add_Light_Filter(bpy.types.Operator):
                     rman_type = object_utils._detect_primitive_(ob)
                     if rman_type == 'LIGHT':
                         if do_parent:
-                            light_filter_ob = self.create_lightfilter(context)
+                            light_filter_ob = self.create_lightfilter(context, create_at_cursor=False)
                             light_filter_ob.parent = ob
                         light_filter_item = ob.data.renderman.light_filters.add()
                         light_filter_item.linked_filter_ob = light_filter_ob
@@ -292,7 +297,7 @@ class PRMAN_OT_RM_Add_Light_Filter(bpy.types.Operator):
                         mat = ob.active_material
                         if mat:
                             if do_parent:
-                                light_filter_ob = self.create_lightfilter(context)
+                                light_filter_ob = self.create_lightfilter(context, create_at_cursor=False)
                                 light_filter_ob.parent = ob
                             light_filter_item = mat.renderman_light.light_filters.add()
                             light_filter_item.linked_filter_ob = light_filter_ob
