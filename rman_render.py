@@ -516,6 +516,7 @@ class RmanRender(object):
 
     def _do_prman_render_begin(self):
         argv = []
+        self.stats_mgr.stats_add_session()
         argv.append("-statssession")
         argv.append(self.stats_mgr.rman_stats_session_name)        
         err = self.rictl.PRManRenderBegin(argv)
@@ -523,6 +524,9 @@ class RmanRender(object):
             rfb_log().error("Error initializing RenderMan")
         return err
 
+    def _do_prman_render_end(self):
+        self.rictl.PRManRenderEnd()
+        self.stats_mgr.stats_remove_session()        
 
     def del_bl_engine(self):
         if not self.bl_engine:
@@ -657,6 +661,10 @@ class RmanRender(object):
         self.bl_viewport = None
         self.xpu_slow_mode = False
 
+    def create_scene(self, config, render_config):
+        self.sg_scene = self.sgmngr.CreateScene(config, render_config, self.stats_mgr.rman_stats_session)
+        self.stats_mgr.attach()
+
     def start_render(self, depsgraph, for_background=False):
     
         self.reset()
@@ -716,19 +724,7 @@ class RmanRender(object):
         bl_rr_helper = None
         if self.sg_scene is None:
             boot_strapping = True
-            self.sg_scene = self.sgmngr.CreateScene(config, render_config, self.stats_mgr.rman_stats_session) 
-        was_connected = self.stats_mgr.is_connected()
-        if self.rman_is_xpu and not was_connected:
-            # force the stats to start in the case of XPU
-            # this is so that we can get a progress percentage
-            # if we can't get it to start, abort
-            self.stats_mgr.attach(force=True)
-            time.sleep(0.5) # give it a second to attach
-            if not self.stats_mgr.is_connected():
-                self.bl_engine.report({'ERROR'}, 'Cannot start live stats. Aborting XPU render')
-                self.stop_render(stop_draw_thread=False)
-                self.del_bl_engine()
-                return False            
+            self.create_scene(config, render_config)
 
         # Export the scene
         try:
@@ -780,9 +776,6 @@ class RmanRender(object):
         if bl_rr_helper:
             bl_rr_helper.finish_passes()
 
-        if not was_connected and self.stats_mgr.is_connected():
-            # if stats was not started before rendering, disconnect
-            self.stats_mgr.disconnect()                     
 
         self.del_bl_engine()
         if not do_persistent_data:
@@ -825,8 +818,8 @@ class RmanRender(object):
                     config = rman.Types.RtParamList()
                     render_config = rman.Types.RtParamList()
 
-                    if self.sg_scene is None:
-                        self.sg_scene = self.sgmngr.CreateScene(config, render_config, self.stats_mgr.rman_stats_session) 
+                    if self.sg_scene is None:                        
+                        self.create_scene(config, render_config)
                     try:
                         self.bl_engine.frame_set(frame, subframe=0.0)
                         rfb_log().debug("Frame: %d" % frame)
@@ -857,7 +850,7 @@ class RmanRender(object):
                     config = rman.Types.RtParamList()
                     render_config = rman.Types.RtParamList()
 
-                    self.sg_scene = self.sgmngr.CreateScene(config, render_config, self.stats_mgr.rman_stats_session) 
+                    self.create_scene(config, render_config)
                     try:
                         self.bl_engine.frame_set(frame, subframe=0.0)
                         rfb_log().debug("Frame: %d" % frame)
@@ -891,7 +884,7 @@ class RmanRender(object):
             config = rman.Types.RtParamList()
             render_config = rman.Types.RtParamList()
 
-            self.sg_scene = self.sgmngr.CreateScene(config, render_config, self.stats_mgr.rman_stats_session) 
+            self.create_scene(config, render_config)
             try:
                 time_start = time.time()
                         
@@ -923,7 +916,7 @@ class RmanRender(object):
             spooler.batch_render()
         self.rman_running = False
         self.del_bl_engine()
-        self.rictl.PRManRenderEnd()
+        self._do_prman_render_end()
         return True          
 
     def start_bake_render(self, depsgraph, for_background=False):
@@ -959,7 +952,7 @@ class RmanRender(object):
         config = rman.Types.RtParamList()
         render_config = rman.Types.RtParamList()
 
-        self.sg_scene = self.sgmngr.CreateScene(config, render_config, self.stats_mgr.rman_stats_session) 
+        self.create_scene(config, render_config)
         try:
             bl_layer = depsgraph.view_layer
             self.rman_is_exporting = True
@@ -1013,7 +1006,7 @@ class RmanRender(object):
                 config = rman.Types.RtParamList()
                 render_config = rman.Types.RtParamList()
 
-                self.sg_scene = self.sgmngr.CreateScene(config, render_config, self.stats_mgr.rman_stats_session) 
+                self.create_scene(config, render_config)
                 try:
                     self.bl_engine.frame_set(frame, subframe=0.0)
                     self.rman_is_exporting = True
@@ -1038,7 +1031,7 @@ class RmanRender(object):
             config = rman.Types.RtParamList()
             render_config = rman.Types.RtParamList()
 
-            self.sg_scene = self.sgmngr.CreateScene(config, render_config, self.stats_mgr.rman_stats_session) 
+            self.create_scene(config, render_config)
 
             try:
                 time_start = time.time()
@@ -1072,7 +1065,7 @@ class RmanRender(object):
             spooler.batch_render()
         self.rman_running = False
         self.del_bl_engine()
-        self.rictl.PRManRenderEnd()
+        self._do_prman_render_end()
         return True                  
 
     def start_interactive_render(self, context, depsgraph):
@@ -1130,7 +1123,7 @@ class RmanRender(object):
         if self.rman_is_xpu:
             self.xpu_slow_mode = int(envconfig().getenv('RFB_XPU_SLOW_MODE', default=1))
 
-        self.sg_scene = self.sgmngr.CreateScene(config, render_config, self.stats_mgr.rman_stats_session) 
+        self.create_scene(config, render_config)
 
         try:
             self.rman_scene_sync.sg_scene = self.sg_scene
@@ -1189,7 +1182,7 @@ class RmanRender(object):
         config = rman.Types.RtParamList()
         render_config = rman.Types.RtParamList()
 
-        self.sg_scene = self.sgmngr.CreateScene(config, render_config, self.stats_mgr.rman_stats_session)         
+        self.create_scene(config, render_config)
         self.rman_is_exporting = True
         self.rman_scene.export_for_swatch_render(depsgraph, self.sg_scene)
         self.rman_is_exporting = False
@@ -1239,7 +1232,7 @@ class RmanRender(object):
                 config = rman.Types.RtParamList()
                 render_config = rman.Types.RtParamList()
 
-                self.sg_scene = self.sgmngr.CreateScene(config, render_config, self.stats_mgr.rman_stats_session)   
+                self.create_scene(config, render_config)
                 try:
                     self.rman_is_exporting = True
                     self.rman_scene.export_for_rib_selection(context, self.sg_scene)
@@ -1262,7 +1255,7 @@ class RmanRender(object):
             config = rman.Types.RtParamList()
             render_config = rman.Types.RtParamList()
 
-            self.sg_scene = self.sgmngr.CreateScene(config, render_config, self.stats_mgr.rman_stats_session)   
+            self.create_scene(config, render_config)
             try:
                 self.rman_is_exporting = True
                 self.rman_scene.export_for_rib_selection(context, self.sg_scene)
@@ -1336,7 +1329,7 @@ class RmanRender(object):
                 rfb_log().debug("Delete Scenegraph scene")
             self.sgmngr.DeleteScene(self.sg_scene)
 
-        self.rictl.PRManRenderEnd()
+        self._do_prman_render_end()
 
         self.sg_scene = None
         #self.stats_mgr.reset()

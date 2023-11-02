@@ -104,6 +104,7 @@ class RfBStatsManager(object):
         global __LIVE_METRICS__
 
         self.mgr = None
+        self.rman_render = rman_render
         self.create_stats_manager()        
         self.render_live_stats = OrderedDict()
         self.render_stats_names = OrderedDict()
@@ -136,9 +137,7 @@ class RfBStatsManager(object):
         self.rman_stats_session = None
         self.rman_stats_session_config = None        
 
-        self.rman_render = rman_render
         self.init_stats_session()
-        self.create_stats_manager()
         __RFB_STATS_MANAGER__ = self
 
     def __del__(self):
@@ -166,9 +165,12 @@ class RfBStatsManager(object):
             return
 
         try:
-            self.mgr = stcore.StatsManager()
+            self.mgr = stcore.StatsManager(                          
+                        # sync live stats server ID betw UI (client) & plugin (server)
+                        host_assign_server_id_func=self.assign_server_id_func)
             self.is_valid = self.mgr.is_valid
-        except:
+        except Exception as e:
+            rfb_log().error(str(e))
             self.mgr = None
             self.is_valid = False          
 
@@ -187,16 +189,21 @@ class RfBStatsManager(object):
         rman.Stats.SetListenerPluginSearchPath(listenerPath)
                           
         # do this once at startup
-        self.web_socket_server_id = 'rfb_statsserver_' + getpass.getuser() + '_' + str(os.getpid())
+        self.web_socket_server_id = 'rfb_' + getpass.getuser() + '_' + str(os.getpid())
         self.rman_stats_session_config.SetServerId(self.web_socket_server_id)
 
         # initialize session config with prefs, then add session
         self.update_session_config()     
+
+    def stats_add_session(self):
         self.rman_stats_session = rman.Stats.AddSession(self.rman_stats_session_config)  
+
+    def stats_remove_session(self):
+        rman.Stats.RemoveSession(self.rman_stats_session)  
 
     def update_session_config(self, force_enabled=False):
 
-        self.web_socket_enabled = prefs_utils.get_pref('rman_roz_liveStatsEnabled', default=False)
+        self.web_socket_enabled = True # we are always enabled
         self.web_socket_port = prefs_utils.get_pref('rman_roz_webSocketServer_Port', default=0)
 
         if force_enabled:
@@ -235,6 +242,22 @@ class RfBStatsManager(object):
         else:
             self.disconnect()
 
+    def assign_server_id_func(self):
+        """ If we have an active render get the serverId string that was used for the
+            live stats server registration when the render started.
+            Note: This is called by live stats UI polling method to determine current
+            live stats server so it should be kept as simple as possible.
+
+            Returns: Server ID string, or None if a render is not running or if
+            the serverId is not found.
+        """
+
+        # No stats if no render
+        if not self.rman_render.rman_running:
+            return None
+        
+        return self.web_socket_server_id            
+
 
     def boot_strap(self):
         while not self.mgr.clientConnected():
@@ -251,14 +274,10 @@ class RfBStatsManager(object):
                         self.mgr.enableMetric(name)
                 return       
         
-    def attach(self, force=False):
+    def attach(self):
 
         if not self.mgr:
             return 
-
-        if force:
-            # force the live stats to be enabled
-            self.update_session_config(force_enabled=True)
 
         if (self.mgr.clientConnected()):
             return

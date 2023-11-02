@@ -35,21 +35,11 @@ if not bpy.app.background:
             
             rr = rman_render.RmanRender.get_rman_render()
             mgr = rr.stats_mgr.mgr
-            self.ui = rui.StatsManagerUI(self, manager=mgr, show_connect=True, show_config=False)
+            self.ui = rui.StatsManagerUI(self, manager=mgr, show_config=False)
             self.setLayout(self.ui.topLayout)
             self.show() # Show window   
 
-        def show(self):
-            if not self.ui.manager.clientConnected():
-                self.ui.attachCB()                    
-            else:
-                # This is a bit weird. If the stats manager is already
-                # connected, the UI doesn't seem to update the connection status when
-                # first showing the window.
-                # For now, just kick the UI's connectedTimer
-                self.ui.connectedTimer.start(1000)
-                self.ui.attachBtn.setText("Connecting...")
-            
+        def show(self):            
             super(RmanStatsWrapper, self).show()
 
         def closeEvent(self, event):
