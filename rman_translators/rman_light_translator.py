@@ -54,7 +54,7 @@ class RmanLightTranslator(RmanTranslator):
         return rman_sg_light
 
     def update_light_filters(self, ob, rman_sg_light):
-        light = ob.data
+        light = ob.original.data
         rm = light.renderman      
         lightfilter_translator = self.rman_scene.rman_translators['LIGHTFILTER']
         lightfilter_translator.export_light_filters(ob, rman_sg_light, rm)

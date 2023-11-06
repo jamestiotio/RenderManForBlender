@@ -71,6 +71,64 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
             context.object.update_tag(refresh={'DATA'})
 
         return {'FINISHED'}
+    
+class COLLECTION_OT_add_remove_light_filter(bpy.types.Operator):
+    bl_label = "Add or Remove Light Filters"
+    bl_idname = "renderman.add_remove_lightfilter"
+
+    action: EnumProperty(
+        name="Action",
+        description="Either add or remove properties",
+        items=[('ADD', 'Add', ''),
+               ('REMOVE', 'Remove', '')],
+        default='ADD')
+    context: StringProperty(
+        name="Context",
+        description="Name of context member to find renderman pointer in",
+        default="")
+    collection: StringProperty(
+        name="Collection",
+        description="The collection to manipulate",
+        default="")
+    collection_index: StringProperty(
+        name="Index Property",
+        description="The property used as a collection index",
+        default="")
+    defaultname: StringProperty(
+        name="Default Name",
+        description="Default name to give this collection item",
+        default="")
+
+    def invoke(self, context, event):
+        scene = context.scene
+        id = string_utils.getattr_recursive(context, self.properties.context)
+        rm = id.renderman if hasattr(id, 'renderman') else id
+
+        prop_coll = self.properties.collection
+        coll_idx = self.properties.collection_index
+
+        collection = getattr(rm, prop_coll)
+        index = getattr(rm, coll_idx)
+
+        if self.properties.action == 'ADD':
+            dflt_name = self.properties.defaultname          
+            collection.add()
+            index = len(collection)-1
+            setattr(rm, coll_idx, index)
+            if dflt_name != '':
+                for coll in collection:
+                    if coll.name == dflt_name:
+                        dflt_name = '%s_NEW' % dflt_name                  
+
+                collection[-1].name = dflt_name
+
+        elif self.properties.action == 'REMOVE':
+            collection.remove(index)
+            setattr(rm, coll_idx, index - 1)
+            id.node_tree.update_tag()
+
+        return {'FINISHED'}
+
 
 class COLLECTION_OT_add_remove_dspymeta(bpy.types.Operator):
     bl_label = ""
@@ -942,6 +1000,7 @@ class PRMAN_OT_Add_Remove_Array_Element(bpy.types.Operator):
 
 classes = [
     COLLECTION_OT_add_remove,
+    COLLECTION_OT_add_remove_light_filter,
     COLLECTION_OT_add_remove_dspymeta,
     COLLECTION_OT_add_remove_user_attributes,
     COLLECTION_OT_meshlight_lightfilter_add_remove,

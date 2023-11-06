@@ -91,7 +91,9 @@ def update_func_with_inputs(self, context):
     # check if this prop is set on an input
     node = self.node if hasattr(self, 'node') else self
 
-    if context and hasattr(context, 'active_object'):
+    if hasattr(node, 'id_data'):
+        node.id_data.update_tag()
+    elif context and hasattr(context, 'active_object'):
         if context.active_object:
             if context.active_object.type in ['CAMERA', 'LIGHT']:
                 context.active_object.update_tag(refresh={'DATA'})
@@ -135,8 +137,9 @@ def update_array_size_func(self, context):
 
     # check if this prop is set on an input
     node = self.node if hasattr(self, 'node') else self
-
-    if context and hasattr(context, 'active_object'):
+    if hasattr(node, 'id_data'):
+        node.id_data.update_tag()
+    elif context and hasattr(context, 'active_object'):
         if context.active_object:
             if context.active_object.type in ['CAMERA', 'LIGHT']:
                 context.active_object.update_tag(refresh={'DATA'})
@@ -200,7 +203,9 @@ def update_func(self, context):
     # check if this prop is set on an input
     node = self.node if hasattr(self, 'node') else self
 
-    if context and hasattr(context, 'active_object'):
+    if hasattr(node, 'id_data'):
+        node.id_data.update_tag()
+    elif context and hasattr(context, 'active_object'):
         if context.active_object:
             if context.active_object.type in ['CAMERA', 'LIGHT']:
                 context.active_object.update_tag(refresh={'DATA'})

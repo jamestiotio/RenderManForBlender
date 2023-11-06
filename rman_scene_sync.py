@@ -3,7 +3,6 @@ from .rfb_utils import object_utils
 from .rfb_utils import texture_utils
 from .rfb_utils import scene_utils
 from .rfb_utils.timer_utils import time_this
-from .rfb_utils import string_utils
 
 from .rfb_logger import rfb_log
 from .rman_sg_nodes.rman_sg_lightfilter import RmanSgLightFilter
@@ -215,9 +214,30 @@ class RmanSceneSync(object):
         rman_sg_material.db_name = db_name
 
     def light_filter_transform_updated(self, ob, rman_sg_lightfilter):
-        rman_group_translator = self.rman_scene.rman_translators['GROUP']  
-        with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):              
-            rman_group_translator.update_transform(ob, rman_sg_lightfilter)
+        translator = self.rman_scene.rman_translators['LIGHTFILTER']
+        with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
+            remove_items = []            
+            for light_ob in rman_sg_lightfilter.lights_list:
+                try:
+                    if light_ob.name not in bpy.data.objects:
+                        remove_items.append(light_ob)
+                        continue
+                except ReferenceError:
+                    remove_items.append(light_ob)
+                    continue
+                proto_key = object_utils.prototype_key(light_ob)
+                rman_sg_light = self.rman_scene.get_rman_prototype(proto_key)
+                child = None
+                # try to look for the lightfilter transform group
+                for i in range(rman_sg_light.sg_node.GetNumChildren()):
+                    c = rman_sg_light.sg_node.GetChild(i)
+                    if c.GetIdentifier().CStr() == rman_sg_lightfilter.db_name:
+                        child = c
+                        break
+                if child:
+                    translator.update_transform(ob, light_ob, c)
+            for item in remove_items:
+                rman_sg_lightfilter.lights_list.remove(item)                  
 
     def light_filter_updated(self, ob_update, force_update=False):
         if isinstance(ob_update, bpy.types.DepsgraphUpdate):
@@ -247,14 +267,25 @@ class RmanSceneSync(object):
             rfb_log().debug("\tLight Filter: %s Shading Updated" % ob.name)
             with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):                
                 self.rman_scene.rman_translators['LIGHTFILTER'].update(ob, rman_sg_lightfilter)
+                remove_items = []
                 for light_ob in rman_sg_lightfilter.lights_list:
+                    try:
+                        if light_ob.name not in bpy.data.objects:
+                            remove_items.append(light_ob)
+                            continue
+                    except ReferenceError:
+                        remove_items.append(light_ob)
+                        continue             
                     if isinstance(light_ob, bpy.types.Material):
                         self.material_updated(light_ob)
                     elif light_ob.original not in self.rman_updates:
                         rman_update = RmanUpdate()
                         rman_update.is_updated_geometry = True
                         rman_update.is_updated_transform = True
-                        self.rman_updates[light_ob.original] = rman_update                        
+                        self.rman_updates[light_ob.original] = rman_update        
+
+                for item in remove_items:
+                    rman_sg_lightfilter.light_lights.remove(item)                
 
     def camera_updated(self, ob_update, force_update=False):
         if isinstance(ob_update, bpy.types.DepsgraphUpdate):

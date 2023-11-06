@@ -1143,7 +1143,6 @@ def draw_cheat_shadow_lightfilter(ob):
 
     ob_matrix = Matrix(ob.matrix_world)        
     m = ob_matrix @ __MTX_Y_180__ 
-    m = m @ __MTX_Y_NEG_90__
 
     box = [m @ Vector(pt) for pt in s_rmanLightLogo['box']]
     box_indices = _get_indices(s_rmanLightLogo['box'])

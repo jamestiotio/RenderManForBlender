@@ -95,10 +95,10 @@ class DATA_PT_renderman_light_refresh(ShaderPanel, Panel):
             return False
         rr = RmanRender.get_rman_render()
         if light.renderman.renderman_light_role == 'RMAN_LIGHT':
-            layout.context_pointer_set("light", context.active_object)
+            layout.context_pointer_set("light", light)
             layout.operator("node.rman_force_light_refresh", text='Force Refresh')
         else:
-            layout.context_pointer_set("light_filter", context.active_object)
+            layout.context_pointer_set("light_filter", light)
             layout.operator("node.rman_force_lightfilter_refresh", text='Force Refresh')
 
 class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
@@ -530,7 +530,7 @@ class RENDERMAN_UL_LightFilters(CollectionPanel):
         light = context.light
 
         self._draw_collection(context, layout, light.renderman, "",
-                              "collection.add_remove", "light", "light_filters",
+                              "renderman.add_remove_lightfilter", "light", "light_filters",
                               "light_filters_index")
 
 class DATA_PT_renderman_node_filters_light(RENDERMAN_UL_LightFilters, Panel):
