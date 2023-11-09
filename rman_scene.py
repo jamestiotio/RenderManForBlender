@@ -1016,7 +1016,7 @@ class RmanScene(object):
         if mat:
             rman_sg_material = self.rman_materials.get(mat.original, None)
             if rman_sg_material and rman_sg_material.sg_node:
-                scenegraph_utils.set_material(rman_sg_node.sg_node, rman_sg_material.sg_node)
+                scenegraph_utils.set_material(rman_sg_node.sg_node, rman_sg_material.sg_node, rman_sg_material, mat=mat, ob=ob)
                 rman_sg_node.is_meshlight = rman_sg_material.has_meshlight
 
     def attach_particle_material(self, psys_settings, parent, ob, group):
@@ -1033,13 +1033,13 @@ class RmanScene(object):
                 mat = parent.material_slots[mat_idx].material
                 rman_sg_material = self.rman_materials.get(mat.original, None)
                 if rman_sg_material:
-                    scenegraph_utils.set_material(group.sg_node, rman_sg_material.sg_node)
+                    scenegraph_utils.set_material(group.sg_node, rman_sg_material.sg_node, rman_sg_material, mat=mat, ob=ob)
         else:
             mat = object_utils.get_active_material(ob)
             if mat:
                 rman_sg_material = self.rman_materials.get(mat.original, None)
                 if rman_sg_material and rman_sg_material.sg_node:
-                    scenegraph_utils.set_material(group.sg_node, rman_sg_material.sg_node)
+                    scenegraph_utils.set_material(group.sg_node, rman_sg_material.sg_node, rman_sg_material, mat=mat, ob=ob)
                     group.is_meshlight = rman_sg_material.has_meshlight
 
     def check_light_local_view(self, ob, rman_sg_node):

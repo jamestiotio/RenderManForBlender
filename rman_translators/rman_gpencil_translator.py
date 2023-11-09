@@ -37,7 +37,7 @@ class RmanGPencilTranslator(RmanTranslator):
 
         return True    
 
-    def _create_mesh(self, ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=False):
+    def _create_mesh(self, ob, i, lyr, stroke, mat, rman_sg_gpencil, rman_sg_material, adjust_point=False):
 
         gp_ob = ob.data     
 
@@ -108,10 +108,10 @@ class RmanGPencilTranslator(RmanTranslator):
         super().export_object_primvars(ob, primvar)            
         mesh_sg.SetPrimVars(primvar)
         if rman_sg_material:
-            scenegraph_utils.set_material(mesh_sg, rman_sg_material.sg_fill_mat)
+            scenegraph_utils.set_material(mesh_sg, rman_sg_material.sg_fill_mat, rman_sg_material, mat=mat, ob=ob)
         rman_sg_gpencil.sg_node.AddChild(mesh_sg)     
 
-    def _create_points(self, ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=False):
+    def _create_points(self, ob, i, lyr, stroke, mat, rman_sg_gpencil, rman_sg_material, adjust_point=False):
         gp_ob = ob.data 
 
         num_pts = len(stroke.points)
@@ -146,7 +146,7 @@ class RmanGPencilTranslator(RmanTranslator):
 
         # Attach material
         if rman_sg_material:
-            scenegraph_utils.set_material(points_sg, rman_sg_material.sg_strok_mat)
+            scenegraph_utils.set_material(points_sg, rman_sg_material.sg_strok_mat, rman_sg_material, mat=mat, ob=ob)
 
         rman_sg_gpencil.sg_node.AddChild(points_sg)                     
         
@@ -201,7 +201,7 @@ class RmanGPencilTranslator(RmanTranslator):
 
         # Attach material
         if rman_sg_material:      
-            scenegraph_utils.set_material(curves_sg, rman_sg_material.sg_stroke_mat)
+            scenegraph_utils.set_material(curves_sg, rman_sg_material.sg_stroke_mat, rman_sg_material, ob=ob)
 
         rman_sg_gpencil.sg_node.AddChild(curves_sg)    
 
@@ -228,14 +228,14 @@ class RmanGPencilTranslator(RmanTranslator):
                     self._create_mesh(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=_ADJUST_POINT_) 
                     if rman_sg_material.sg_stroke_mat:
                         if mat.grease_pencil.mode in ['DOTS', 'BOX']:
-                            self._create_points(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=_ADJUST_POINT_)
+                            self._create_points(ob, j, lyr, stroke, mat, rman_sg_gpencil, rman_sg_material, adjust_point=_ADJUST_POINT_)
                         else:
-                            self._create_curve(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=_ADJUST_POINT_)                        
+                            self._create_curve(ob, j, lyr, stroke, mat, rman_sg_gpencil, rman_sg_material, adjust_point=_ADJUST_POINT_)                        
 
                 else:
                     if mat.grease_pencil.mode in ['DOTS', 'BOX']:
-                        self._create_points(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=_ADJUST_POINT_)
+                        self._create_points(ob, j, lyr, stroke, mat, rman_sg_gpencil, rman_sg_material, adjust_point=_ADJUST_POINT_)
                     else:
-                        self._create_curve(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=_ADJUST_POINT_)               
+                        self._create_curve(ob, j, lyr, stroke, mat, rman_sg_gpencil, rman_sg_material, adjust_point=_ADJUST_POINT_)               
                 i +=1
             j += 1

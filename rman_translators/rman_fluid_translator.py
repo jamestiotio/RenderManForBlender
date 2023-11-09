@@ -145,7 +145,7 @@ class RmanFluidTranslator(RmanTranslator):
                 rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
                 if rman_sg_material:
                     material_sg_node = rman_sg_material.sg_node
-            scenegraph_utils.set_material(sg_node, material_sg_node)         
+            scenegraph_utils.set_material(sg_node, material_sg_node, rman_sg_material, mat=mat, ob=ob)         
 
     def update_fluid_particles(self, ob, rman_sg_fluid, psys, fluid_data):
         sg_node = rman_sg_fluid.rman_sg_liquid_node
@@ -188,7 +188,7 @@ class RmanFluidTranslator(RmanTranslator):
                 rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
                 if rman_sg_material:
                     material_sg_node = rman_sg_material.sg_node
-            scenegraph_utils.set_material(sg_node, material_sg_node)   
+            scenegraph_utils.set_material(sg_node, material_sg_node, rman_sg_material, mat=mat, ob=ob)   
                  
     def update_fluid_openvdb(self, ob, rman_sg_fluid, fluid_data):
         cacheFile = locate_openVDB_cache(fluid_data.cache_directory, self.rman_scene.bl_frame_current)

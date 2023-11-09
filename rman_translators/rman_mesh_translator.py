@@ -498,7 +498,7 @@ class RmanMeshTranslator(RmanTranslator):
 
                 if mat_id == 0:
                     primvar.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_shade_faceset, faces, len(faces))
-                    scenegraph_utils.set_material(sg_node, sg_material.sg_node)
+                    scenegraph_utils.set_material(sg_node, sg_material.sg_node, sg_material, mat=mat, ob=ob)
                 else:                
                     sg_sub_mesh =  self.rman_scene.sg_scene.CreateMesh("%s-%d" % (rman_sg_mesh.db_name, i))
                     i += 1
@@ -511,7 +511,7 @@ class RmanMeshTranslator(RmanTranslator):
                     pvars.Inherit(primvar)
                     pvars.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_shade_faceset, faces, len(faces))                    
                     sg_sub_mesh.SetPrimVars(pvars)
-                    scenegraph_utils.set_material(sg_sub_mesh, sg_material.sg_node)
+                    scenegraph_utils.set_material(sg_sub_mesh, sg_material.sg_node, sg_material, mat=mat, ob=ob)
                     sg_node.AddChild(sg_sub_mesh)
                     rman_sg_mesh.multi_material_children.append(sg_sub_mesh)
         else:
