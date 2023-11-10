@@ -303,8 +303,11 @@ def preload_quicklynoiseless():
 
 def unload_quicklynoiseless():
     global __D_QUICKLYNOISELESS__
-    if __D_QUICKLYNOISELESS__ is not None:
-        del __D_QUICKLYNOISELESS__    
+    try:
+        if __D_QUICKLYNOISELESS__ is not None:
+            del __D_QUICKLYNOISELESS__    
+    except NameError as e:
+        pass
 
 class BlRenderResultHelper:
     def __init__(self, rman_render, bl_scene, dspy_dict):
@@ -663,7 +666,7 @@ class RmanRender(object):
 
     def create_scene(self, config, render_config):
         self.sg_scene = self.sgmngr.CreateScene(config, render_config, self.stats_mgr.rman_stats_session)
-        self.stats_mgr.attach()
+        return self.stats_mgr.attach()
 
     def start_render(self, depsgraph, for_background=False):
     
@@ -679,6 +682,7 @@ class RmanRender(object):
         if not self._check_prman_license():
             return False        
 
+        self.rman_running = True
         do_persistent_data = rm.do_persistent_data
         use_compositor = scene_utils.should_use_bl_compositor(self.bl_scene)
         if for_background:
@@ -724,13 +728,16 @@ class RmanRender(object):
         bl_rr_helper = None
         if self.sg_scene is None:
             boot_strapping = True
-            self.create_scene(config, render_config)
+            if not self.create_scene(config, render_config):
+                self.bl_engine.report({'ERROR'}, 'Could not connect to the stats server. Aborting...' )
+                self.stop_render(stop_draw_thread=False)
+                self.del_bl_engine()
+                return False
 
         # Export the scene
         try:
             bl_layer = depsgraph.view_layer
             self.rman_is_exporting = True
-            self.rman_running = True
             self.start_export_stats_thread()
             if boot_strapping:
                 # This is our first time exporting
@@ -753,7 +760,7 @@ class RmanRender(object):
             return False            
         
         # Start the render
-        render_cmd = "prman"
+        render_cmd = "prman -live"
         if self.rman_render_into == 'blender' or do_persistent_data:
             render_cmd = "prman -live"
         render_cmd = self._append_render_cmd(render_cmd)
@@ -884,7 +891,11 @@ class RmanRender(object):
             config = rman.Types.RtParamList()
             render_config = rman.Types.RtParamList()
 
-            self.create_scene(config, render_config)
+            if not self.create_scene(config, render_config):
+                self.bl_engine.report({'ERROR'}, 'Could not connect to the stats server. Aborting...' )            
+                self.stop_render(stop_draw_thread=False)
+                self.del_bl_engine()
+                return False
             try:
                 time_start = time.time()
                         
@@ -923,6 +934,7 @@ class RmanRender(object):
         self.reset()
         if self._do_prman_render_begin():
             return False        
+        self.rman_running = True
         self.bl_scene = depsgraph.scene_eval
         rm = self.bl_scene.renderman
         self.it_port = start_cmd_server()    
@@ -952,11 +964,14 @@ class RmanRender(object):
         config = rman.Types.RtParamList()
         render_config = rman.Types.RtParamList()
 
-        self.create_scene(config, render_config)
+        if not self.create_scene(config, render_config):
+            self.bl_engine.report({'ERROR'}, 'Could not connect to the stats server. Aborting...' )
+            self.stop_render(stop_draw_thread=False)
+            self.del_bl_engine()
+            return False        
         try:
             bl_layer = depsgraph.view_layer
             self.rman_is_exporting = True
-            self.rman_running = True
             self.start_export_stats_thread()
             self.rman_scene.export_for_bake_render(depsgraph, self.sg_scene, bl_layer, is_external=is_external)
             self.rman_is_exporting = False
@@ -1123,7 +1138,11 @@ class RmanRender(object):
         if self.rman_is_xpu:
             self.xpu_slow_mode = int(envconfig().getenv('RFB_XPU_SLOW_MODE', default=1))
 
-        self.create_scene(config, render_config)
+        if not self.create_scene(config, render_config):
+            self.bl_engine.report({'ERROR'}, 'Could not connect to the stats server. Aborting...' )
+            self.stop_render(stop_draw_thread=False)
+            self.del_bl_engine()
+            return False
 
         try:
             self.rman_scene_sync.sg_scene = self.sg_scene

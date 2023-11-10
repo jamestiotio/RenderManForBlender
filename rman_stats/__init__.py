@@ -263,38 +263,55 @@ class RfBStatsManager(object):
         while not self.mgr.clientConnected():
             time.sleep(0.01)
             if self.boot_strap_thread_kill:
+                rfb_log().debug("Bootstrap thread killed")
                 return
             if self.mgr.failedToConnect():
-                rfb_log().error('Failed to connect to stats web socket server.')
-                return
-            if self.mgr.clientConnected():
-                for name,label in __LIVE_METRICS__:
-                    # Declare interest
-                    if name:
-                        self.mgr.enableMetric(name)
-                return       
-        
-    def attach(self):
+                rfb_log().debug('Failed to connect to stats server: %s' % self.mgr.connectionStatusString())
+                self.mgr.connectToServer() # keep trying to connect
+                continue
 
-        if not self.mgr:
-            return 
+        if self.mgr.clientConnected():
+            rfb_log().debug("Connected to stats server. Declare interest")
+            for name,label in __LIVE_METRICS__:
+                # Declare interest
+                if name:
+                    self.mgr.enableMetric(name) 
 
-        if (self.mgr.clientConnected()):
-            return
-
-        # Manager will connect based on given configuration & serverId
-        self.mgr.connectToServer()
-
+    def kill_boostap_thread(self):
         # if the bootstrap thread is still running, kill it
         if self.boot_strap_thread:
             if self.boot_strap_thread.is_alive():
                 self.boot_strap_thread_kill = True
                 self.boot_strap_thread.join()
             self.boot_strap_thread_kill = False
-            self.boot_strap_thread = False
+            self.boot_strap_thread = False        
+        
+    def attach(self):
+
+        if not self.mgr:
+            return False
+
+        if (self.mgr.clientConnected()):
+            return True
+
+        # Manager will connect based on given configuration & serverId
+        self.mgr.connectToServer()
+
+        # Check if the boostrapping thread is still running
+        # Shouldn't really need this, but let's just be sure.
+        self.kill_boostap_thread()
 
         self.boot_strap_thread = threading.Thread(target=self.boot_strap)
         self.boot_strap_thread.start()
+        # wait 5 seconds
+        if not self.boot_strap_thread.join(5.0):
+            # boostrap thread didn't stop, abort
+            self.kill_boostap_thread()
+            if not self.mgr.clientConnected():  
+                # if we still can't connect to the stats server, abort 
+                rfb_log().debug("Giving up trying to connect to stats server: %s" % self.mgr.connectionStatusString())             
+                return False
+        return True
 
     def is_connected(self):
         return (self.web_socket_enabled and self.mgr and self.mgr.clientConnected())
@@ -469,7 +486,7 @@ class RfBStatsManager(object):
                 progress = float(self._progress) / 100.0  
                 self.rman_render.bl_engine.update_progress(progress)
             except ReferenceError as e:
-                #rfb_log().debug("Error calling update stats (%s). Aborting..." % str(e))
+                rfb_log().error("Error calling update stats (%s). Aborting..." % str(e))
                 return                
 
 def register():
