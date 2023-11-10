@@ -7,7 +7,7 @@ from ...rfb_logger import rfb_log
 from ...rman_constants import RMAN_AREA_LIGHT_TYPES, USE_GPU_MODULE
 from .barn_light_filter_draw_helper import BarnLightFilterDrawHelper
 from .frustrum_draw_helper import FrustumDrawHelper
-from mathutils import Vector, Matrix
+from mathutils import Vector, Matrix, Quaternion
 from bpy.app.handlers import persistent
 import mathutils
 import math
@@ -457,8 +457,7 @@ s_cylinderLight['indices_tris'] = [
 __MTX_Y_180__ = Matrix.Rotation(math.radians(180.0), 4, 'Y')
 __MTX_X_90__ = Matrix.Rotation(math.radians(90.0), 4, 'X')
 __MTX_Y_90__ = Matrix.Rotation(math.radians(90.0), 4, 'Y')
-__MTX_Y_NEG_90__ = Matrix.Rotation(math.radians(-90.0), 4, 'Y')
-
+__MTX_ENVDAYLIGHT_ORIENT__ = Matrix.LocRotScale(Vector((0.0, 0.0, 0.0)), Quaternion((0.0, -0.0, -0.7071067690849304, 0.7071067690849304)), Vector((-1.0, -1.0, -1.0)))
 
 if USE_GPU_MODULE and not bpy.app.background:
     # Code reference: https://projects.blender.org/blender/blender/src/branch/main/doc/python_api/examples/gpu.7.py
@@ -599,9 +598,7 @@ def _get_sun_direction(ob):
     light = ob.data
     rm = light.renderman.get_light_node()
 
-    m = Matrix.Identity(4)     
-    m = m @ __MTX_X_90__ 
-    m = m @ __MTX_Y_90__ 
+    m = __MTX_ENVDAYLIGHT_ORIENT__
 
     month = float(rm.month)
     day = float(rm.day)
