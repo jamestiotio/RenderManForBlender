@@ -3,6 +3,7 @@ import os
 from gpu_extras.batch import batch_for_shader
 from ...rfb_utils import string_utils
 from ...rfb_utils import prefs_utils
+from ...rfb_utils import transform_utils
 from ...rfb_logger import rfb_log
 from ...rman_constants import RMAN_AREA_LIGHT_TYPES, USE_GPU_MODULE
 from .barn_light_filter_draw_helper import BarnLightFilterDrawHelper
@@ -457,7 +458,12 @@ s_cylinderLight['indices_tris'] = [
 __MTX_Y_180__ = Matrix.Rotation(math.radians(180.0), 4, 'Y')
 __MTX_X_90__ = Matrix.Rotation(math.radians(90.0), 4, 'X')
 __MTX_Y_90__ = Matrix.Rotation(math.radians(90.0), 4, 'Y')
-__MTX_ENVDAYLIGHT_ORIENT__ = Matrix.LocRotScale(Vector((0.0, 0.0, 0.0)), Quaternion((0.0, -0.0, -0.7071067690849304, 0.7071067690849304)), Vector((-1.0, -1.0, -1.0)))
+
+__MTX_ENVDAYLIGHT_ORIENT__ = transform_utils.convert_to_blmatrix([ 
+            1.0000, -0.0000,  0.0000, 0.0000,
+            -0.0000, -0.0000,  1.0000, 0.0000,
+            -0.0000,  1.0000, -0.0000, 0.0000,
+            0.0000,  0.0000,  0.0000, 1.0000])
 
 if USE_GPU_MODULE and not bpy.app.background:
     # Code reference: https://projects.blender.org/blender/blender/src/branch/main/doc/python_api/examples/gpu.7.py
