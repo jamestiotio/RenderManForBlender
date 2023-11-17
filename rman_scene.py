@@ -616,7 +616,7 @@ class RmanScene(object):
 
             if rman_parent_node:
                 # this is an instance that comes from a particle system
-                # add this instance to the rman_sg_node that owns the particle system                
+                # add this instance to the rman_sg_node that owns the particle system        
                 rman_parent_node.instances[group_db_name] = rman_sg_group
             else:       
                 rman_sg_node.instances[group_db_name] = rman_sg_group                   
@@ -633,18 +633,7 @@ class RmanScene(object):
         # Object attrs
         translator =  self.rman_translators.get(rman_type, None)
         if translator:
-            if rman_sg_node.shared_attrs.GetNumParams() == 0:
-                # export the attributes for this object
-                translator.export_object_attributes(ob_eval, rman_sg_group)
-                rman_sg_node.shared_attrs.Inherit(rman_sg_group.sg_node.GetAttributes())
-            else:
-                # the attributes of this object have already been exported
-                # just call SetAttributes
-                rman_sg_group.sg_node.SetAttributes(rman_sg_node.shared_attrs)
-
-            if is_empty_instancer:
-                translator.export_object_attributes(instance_parent, rman_sg_group, remove=False)
-                
+            # export instance attributes
             translator.export_instance_attributes(ob_eval, rman_sg_group, ob_inst)       
 
         # Add any particles necessary
@@ -652,35 +641,31 @@ class RmanScene(object):
             if (len(ob_eval.particle_systems) > 0) and ob_inst.show_particles:
                 rman_sg_group.sg_node.AddChild(rman_sg_node.rman_sg_particle_group_node.sg_node)
 
-        # Attach a material
-        if is_empty_instancer and instance_parent.renderman.rman_material_override:
-            self.attach_material(instance_parent, rman_sg_group)
+        # Attach any material overrides
+        if is_empty_instancer:
+            if instance_parent.renderman.rman_material_override:
+                rman_sg_group.sg_node.SetMaterial(None)
+            else:
+                # if there is not a material override, we want
+                # the material of the object
+                self.attach_material(ob_eval, rman_sg_group)        
         elif psys:
             self.attach_particle_material(psys.settings, instance_parent, ob_eval, rman_sg_group)
-            rman_sg_group.bl_psys_settings = psys.settings.original
-        else:
-            self.attach_material(ob_eval, rman_sg_group)
+            rman_sg_group.bl_psys_settings = psys.settings.original            
 
-        if object_utils.has_empty_parent(ob_eval):
-            # this object is a child of an empty. Add it to the empty.
-            ob_parent_eval = ob_eval.parent.evaluated_get(self.depsgraph)
-            parent_proto_key = object_utils.prototype_key(ob_eval.parent)
-            rman_empty_node = self.get_rman_prototype(parent_proto_key, ob=ob_parent_eval, create=True)
-            rman_sg_group.sg_node.SetInheritTransform(False) # we don't want to inherit the transform
-            rman_empty_node.sg_node.AddChild(rman_sg_group.sg_node)
-        elif is_empty_instancer:
+        if is_empty_instancer:
+            # if this is an empty instancer, add as a child to the empty instancer
             parent_proto_key = object_utils.prototype_key(instance_parent)
             rman_parent_node = self.get_rman_prototype(parent_proto_key, ob=instance_parent, create=True)             
-            rman_sg_group.sg_node.SetInheritTransform(False) # we don't want to inherit the transform
-            rman_parent_node.sg_node.AddChild(rman_sg_group.sg_node)
+            rman_parent_node.sg_attributes.AddChild(rman_sg_group.sg_node)
         else:
-            self.get_root_sg_node().AddChild(rman_sg_group.sg_node)
+            rman_sg_node.sg_attributes.AddChild(rman_sg_group.sg_node)
             
         if rman_type == "META":
             # meta/blobbies are already in world space. Their instances don't need to
             # set a transform.
             return rman_sg_group           
-                
+        rman_sg_group.sg_node.SetInheritTransform(False) # we don't want to inherit the transform                
         rman_group_translator.update_transform(ob_inst, rman_sg_group)
         return rman_sg_group
 
@@ -748,6 +733,7 @@ class RmanScene(object):
         rman_sg_node = translator.export(ob, db_name)
         if not rman_sg_node:
             return None
+        rman_sg_node.create_sg_attributes(ob)
         rman_sg_node.rman_type = rman_type
         self.rman_prototypes[proto_key] = rman_sg_node
 
@@ -784,6 +770,14 @@ class RmanScene(object):
                 rman_sg_node.is_deforming = False
 
         translator.update(ob, rman_sg_node)
+        
+        # set object attributes
+        attrs = rman_sg_node.sg_attributes.GetAttributes()
+        translator.export_object_attributes_attrs(ob, attrs, remove=False)
+        rman_sg_node.sg_attributes.SetAttributes(attrs)
+
+        # set material
+        self.attach_material(ob, rman_sg_node, sg_node=rman_sg_node.sg_attributes)
 
         if len(ob.particle_systems) > 0:
             # Deal with any particles now.
@@ -811,12 +805,15 @@ class RmanScene(object):
                 rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_particles.sg_node)
 
         if rman_type == 'EMPTY':
-            # If this is an empty, just export it as a coordinate system
-            # along with any instance attributes/materials necessary
             self._export_hidden_instance(ob, rman_sg_node)
-            return rman_sg_node
-        elif rman_type == 'EMPTY_INSTANCER':
-            self.get_root_sg_node().AddChild(rman_sg_node.sg_node)
+
+        if ob.original.parent:
+            ob_parent_eval = ob.original.parent.evaluated_get(self.depsgraph)
+            parent_proto_key = object_utils.prototype_key(ob.original.parent)
+            rman_parent_node = self.get_rman_prototype(parent_proto_key, ob=ob_parent_eval, create=True)
+            rman_parent_node.sg_attributes.AddChild(rman_sg_node.sg_attributes)
+        else:
+            self.get_root_sg_node().AddChild(rman_sg_node.sg_attributes)
 
         return rman_sg_node
 
@@ -870,11 +867,9 @@ class RmanScene(object):
                 rfb_log().debug("   Exported %d/%d motion instances... (%s)" % (i, total, ob.name))
                 self.rman_render.stats_mgr.set_export_stats("Exporting motion instances (%d) " % samp ,i/total)
                 instance_parent = None
-                rman_parent_node = None
                 if ob_inst.is_instance:
                     psys = ob_inst.particle_system
                     instance_parent = ob_inst.parent
-                    rman_parent_node = self.get_rman_prototype(object_utils.prototype_key(instance_parent))
 
                 rman_type = object_utils._detect_primitive_(ob)
                 if rman_type in object_utils._RMAN_NO_INSTANCES_:
@@ -916,14 +911,10 @@ class RmanScene(object):
                             break
 
                     if rman_sg_node.is_transforming or psys:
-                        group_db_name = object_utils.get_group_db_name(ob_inst)
-                        if instance_parent:
-                            rman_sg_group = rman_parent_node.instances.get(group_db_name, None)
-                        else:
-                            rman_sg_group = rman_sg_node.instances.get(group_db_name, None)
+                        rman_sg_group = self.get_rman_sg_instance(ob_inst, rman_sg_node, instance_parent, psys)
                         if rman_sg_group:
                             if first_sample:
-                                rman_group_translator.update_transform_num_samples(rman_sg_group, rman_sg_node.motion_steps )
+                                rman_group_translator.update_transform_num_samples(rman_sg_group, rman_sg_node.motion_steps ) 
                             rman_group_translator.update_transform_sample( ob_inst, rman_sg_group, idx, time_samp)
 
                 # deformation blur
@@ -998,25 +989,19 @@ class RmanScene(object):
 
     def _export_hidden_instance(self, ob, rman_sg_node):
         translator = self.rman_translators.get('EMPTY')
-        translator.export_object_attributes(ob, rman_sg_node)
-        self.attach_material(ob, rman_sg_node)
-        if object_utils.has_empty_parent(ob):
-            parent_proto_key = object_utils.prototype_key(ob.parent)
-            ob_parent_eval = ob.parent.evaluated_get(self.depsgraph)
-            rman_empty_node = self.get_rman_prototype(parent_proto_key, ob=ob_parent_eval, create=True)
-            rman_empty_node.sg_node.AddChild(rman_sg_node.sg_node)
-        else:
+        translator.export_transform(ob, rman_sg_node.sg_node)
+        if ob.renderman.export_as_coordsys:
             self.get_root_sg_node().AddChild(rman_sg_node.sg_node)
-            translator.export_transform(ob, rman_sg_node.sg_node)
-            if ob.renderman.export_as_coordsys:
-                self.get_root_sg_node().AddCoordinateSystem(rman_sg_node.sg_node)
+            self.get_root_sg_node().AddCoordinateSystem(rman_sg_node.sg_node)
 
-    def attach_material(self, ob, rman_sg_node):
+    def attach_material(self, ob, rman_sg_node, sg_node=None):
         mat = object_utils.get_active_material(ob)
         if mat:
             rman_sg_material = self.rman_materials.get(mat.original, None)
             if rman_sg_material and rman_sg_material.sg_node:
-                scenegraph_utils.set_material(rman_sg_node.sg_node, rman_sg_material.sg_node, rman_sg_material, mat=mat, ob=ob)
+                if sg_node is None:
+                    sg_node = rman_sg_node.sg_node
+                scenegraph_utils.set_material(sg_node, rman_sg_material.sg_node, rman_sg_material, mat=mat, ob=ob)
                 rman_sg_node.is_meshlight = rman_sg_material.has_meshlight
 
     def attach_particle_material(self, psys_settings, parent, ob, group):

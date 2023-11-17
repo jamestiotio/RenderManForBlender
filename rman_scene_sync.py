@@ -449,6 +449,7 @@ class RmanSceneSync(object):
             rman_sg_node = self.rman_scene.get_rman_prototype(proto_key, ob=ob, create=True)
             rman_type = object_utils._detect_primitive_(ob) 
             self.rman_scene.rman_translators[rman_type].clear_children(rman_sg_node)
+            self.rman_scene.attach_material(ob, rman_sg_node, sg_node=rman_sg_node.sg_attributes)
             
         # mark all objects in the instance collection
         # as needing their instances updated            
@@ -885,16 +886,30 @@ class RmanSceneSync(object):
                         rfb_log().debug("\t%s parent updated (%s)" % (ob_eval.name, instance_parent.name))
 
                 if rman_sg_node and not is_new_object and not instance.is_instance:
-                    if rman_update.is_updated_geometry and proto_key not in already_udpated:
-                        translator =  self.rman_scene.rman_translators.get(rman_type, None)
-                        if rman_update.updated_prop_name:
-                            rfb_log().debug("\tUpdating Single Primvar: %s" % proto_key)
-                            translator.update_primvar(ob_eval, rman_sg_node, rman_update.updated_prop_name)
-                        else:
-                            rfb_log().debug("\tUpdating Object: %s" % proto_key)
-                            translator.update(ob_eval, rman_sg_node)  
-                            rman_sg_node.shared_attrs.Clear()
-                            self.update_particle_emitters(ob_eval)
+                    if proto_key not in already_udpated:
+                        if rman_update.is_updated_attributes:
+                            # this should be a simple attribute change
+                            from .rfb_utils import property_utils
+                            attrs = rman_sg_node.sg_attributes.GetAttributes()
+                            rm = ob_eval.renderman
+                            if is_empty_instancer:
+                                rm = instance_parent.renderman
+                            meta = rm.prop_meta[rman_update.updated_prop_name]
+                            rfb_log().debug("Setting RiAttribute: %s" % rman_update.updated_prop_name)
+                            property_utils.set_riattr_bl_prop(attrs, rman_update.updated_prop_name, meta, rm, check_inherit=True)
+                            rman_sg_node.sg_attributes.SetAttributes(attrs)                          
+                        elif rman_update.is_updated_geometry:
+                            translator =  self.rman_scene.rman_translators.get(rman_type, None)
+                            if rman_update.updated_prop_name:
+                                rfb_log().debug("\tUpdating Single Primvar: %s" % proto_key)
+                                translator.update_primvar(ob_eval, rman_sg_node, rman_update.updated_prop_name)
+                            else:
+                                rfb_log().debug("\tUpdating Object: %s" % proto_key)
+                                translator.update(ob_eval, rman_sg_node)  
+                                #rman_sg_node.shared_attrs.Clear()
+                                self.rman_scene.attach_material(ob_eval, rman_sg_node, sg_node=rman_sg_node.sg_attributes)
+                                self.update_particle_emitters(ob_eval)
+                            
                         already_udpated.append(proto_key)   
 
                 if rman_type in object_utils._RMAN_NO_INSTANCES_:
@@ -934,15 +949,8 @@ class RmanSceneSync(object):
                     rman_sg_group = self.rman_scene.get_rman_sg_instance(instance, rman_sg_node, instance_parent, psys, create=False)
                     if rman_sg_group:
                         if rman_update.is_updated_attributes:
-                            from .rfb_utils import property_utils
-                            attrs = rman_sg_group.sg_node.GetAttributes()
-                            rm = ob_eval.renderman
-                            if is_empty_instancer:
-                                rm = instance_parent.renderman
-                            meta = rm.prop_meta[rman_update.updated_prop_name]
-                            rfb_log().debug("Setting RiAttribute: %s" % rman_update.updated_prop_name)
-                            property_utils.set_riattr_bl_prop(attrs, rman_update.updated_prop_name, meta, rm, check_inherit=True)
-                            rman_sg_group.sg_node.SetAttributes(attrs)                             
+                            # don't need to do anything if this an attribute update
+                            continue
 
                         if rman_update.is_updated_transform:
                             rman_group_translator = self.rman_scene.rman_translators['GROUP']
