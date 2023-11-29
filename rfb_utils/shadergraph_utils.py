@@ -3,7 +3,13 @@ from . import filepath_utils
 from . import string_utils
 from . import object_utils
 from .prefs_utils import get_pref
-from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERNS, RMAN_UTILITY_PATTERN_NAMES, RFB_FLOAT3
+from ..rman_constants import (
+    RMAN_STYLIZED_FILTERS, 
+    RMAN_STYLIZED_PATTERNS, 
+    RMAN_UTILITY_PATTERN_NAMES, 
+    RFB_FLOAT3,
+    BLENDER_41
+)
 import math
 import bpy
 

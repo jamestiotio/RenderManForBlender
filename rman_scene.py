@@ -808,10 +808,15 @@ class RmanScene(object):
             self._export_hidden_instance(ob, rman_sg_node)
 
         if ob.original.parent:
-            ob_parent_eval = ob.original.parent.evaluated_get(self.depsgraph)
-            parent_proto_key = object_utils.prototype_key(ob.original.parent)
-            rman_parent_node = self.get_rman_prototype(parent_proto_key, ob=ob_parent_eval, create=True)
-            rman_parent_node.sg_attributes.AddChild(rman_sg_node.sg_attributes)
+            ob_parent_eval = object_utils.find_parent(ob.original)
+            if ob_parent_eval:
+                ob_parent_eval = ob_parent_eval.evaluated_get(self.depsgraph)
+                parent_proto_key = object_utils.prototype_key(ob.original.parent)
+                rman_parent_node = self.get_rman_prototype(parent_proto_key, ob=ob_parent_eval, create=True)
+                rman_parent_node.sg_attributes.AddChild(rman_sg_node.sg_attributes)
+            else:
+                # doesn't have a parent, add to root
+                self.get_root_sg_node().AddChild(rman_sg_node.sg_attributes)
         else:
             self.get_root_sg_node().AddChild(rman_sg_node.sg_attributes)
 

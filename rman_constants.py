@@ -17,13 +17,17 @@ BLENDER_VERSION = bpy.app.version
 
 # Starting with Blender 3.5, the bgl module is considered deprecated
 # addons are to use the gpu module
-USE_GPU_MODULE = ( BLENDER_VERSION_MAJOR == 3 and BLENDER_VERSION_MINOR >= 5)
+USE_GPU_MODULE = BLENDER_VERSION >= (3, 5, 0)
 
-# Starting Blender 3.6, Blender will now hand us metaballs in the depsgraph
+# Starting with Blender 3.6, Blender will now hand us metaballs in the depsgraph as meshes
 # we can ignore "META" objects
-META_AS_MESH = ( BLENDER_VERSION_MAJOR == 3 and BLENDER_VERSION_MINOR >= 6)
+META_AS_MESH = BLENDER_VERSION >= (3, 6, 0)
 
-BLENDER_HAS_CURVES_NODE = (BLENDER_VERSION_MAJOR == 3 and BLENDER_VERSION_MINOR >= 3)
+# curve nodes were added in Blender 3.3
+BLENDER_HAS_CURVES_NODE = BLENDER_VERSION >= (3, 3, 0) 
+
+# Check if we are using Blender 4.1
+BLENDER_41 = BLENDER_VERSION >= (4, 1, 0)
 
 BLENDER_SUPPORTED_VERSION_MAJOR = 2
 BLENDER_SUPPORTED_VERSION_MINOR = 93

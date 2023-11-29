@@ -4,7 +4,7 @@ import rman
 import ice
 import bpy
 import sys
-from .rman_constants import RFB_VIEWPORT_MAX_BUCKETS, RMAN_RENDERMAN_BLUE, USE_GPU_MODULE
+from .rman_constants import RFB_VIEWPORT_MAX_BUCKETS, RMAN_RENDERMAN_BLUE, USE_GPU_MODULE, BLENDER_41
 from .rman_scene import RmanScene
 from .rman_scene_sync import RmanSceneSync
 from. import rman_spool
@@ -1413,6 +1413,11 @@ class RmanRender(object):
             # (the driver will handle pixel scaling to the given viewport size)
             dspy_plugin.DrawBufferToBlender(ctypes.c_int(width), ctypes.c_int(height))            
 
+        if BLENDER_41:
+            uniform_color = 'UNIFORM_COLOR'
+        else:
+            uniform_color = '2D_UNIFORM_COLOR'
+
         if self.do_draw_buckets():
             # draw bucket indicator
             image_num = 0
@@ -1455,7 +1460,7 @@ class RmanRender(object):
             bucket_color = get_pref('rman_viewport_bucket_color', default=RMAN_RENDERMAN_BLUE)
 
             # draw from newest to oldest
-            shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')            
+            shader = gpu.shader.from_builtin(uniform_color)            
             shader.bind()
             shader.uniform_float("color", bucket_color)                   
             for v, i in (self.viewport_buckets):        
@@ -1465,7 +1470,7 @@ class RmanRender(object):
         # draw progress bar at the bottom of the viewport
         if self.do_draw_progressbar():
             progress = self.stats_mgr._progress / 100.0 
-            shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
+            shader = gpu.shader.from_builtin(uniform_color)
             shader.bind()                
             progress_color = get_pref('rman_viewport_progress_color', default=RMAN_RENDERMAN_BLUE) 
             shader.uniform_float("color", progress_color)                       

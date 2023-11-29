@@ -6,6 +6,7 @@ from ..rfb_utils import string_utils
 from ..rfb_utils import property_utils
 from ..rfb_utils import scenegraph_utils
 from ..rfb_logger import rfb_log
+from ..rman_constants import BLENDER_41
 
 import bpy
 import math
@@ -280,7 +281,11 @@ class RmanMeshTranslator(RmanTranslator):
         # get creases
         edges_len = len(mesh.edges)
         creases = np.zeros(edges_len, dtype=np.float32)
-        mesh.edges.foreach_get('crease', creases)
+        if BLENDER_41:
+            if mesh.edge_creases:
+                mesh.edge_creases.data.foreach_get('value', creases)
+        else:
+            mesh.edges.foreach_get('crease', creases)
         if (creases > 0.0).any():
             # we have edges where their crease is > 0.0
             # grab only those edges
@@ -301,7 +306,9 @@ class RmanMeshTranslator(RmanTranslator):
             intargs.extend(crease_edges.flatten().tolist())
             floatargs.extend(creases.tolist())   
 
-
+        '''
+        # Blender 4.0 removed face maps, also adding holes
+        # in subdivs won't work in XPU
         holes_facemap = getattr(rm, 'rman_holesFaceMap', '')
         if holes_facemap != '' and holes_facemap in ob.face_maps:
             # use this facemap for face edit holes
@@ -325,6 +332,7 @@ class RmanMeshTranslator(RmanTranslator):
                 stringargs.extend(['hole'] * num_holes)
 
             bm.free()
+        '''
 
         primvar.SetStringArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtags, tags, len(tags))
         primvar.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtagnargs, nargs, len(nargs))
@@ -381,7 +389,7 @@ class RmanMeshTranslator(RmanTranslator):
 
     def update_primvar(self, ob, rman_sg_mesh, prop_name):
         mesh = ob.to_mesh()
-        primvars = rman_sg_mesh.sg_node.GetPrimVars()
+        primvars = rman_sg_mesh.sg_mesh.GetPrimVars()
         if prop_name in mesh.renderman.prop_meta:
             rm = mesh.renderman
             meta = rm.prop_meta[prop_name]
@@ -389,7 +397,7 @@ class RmanMeshTranslator(RmanTranslator):
             property_utils.set_primvar_bl_prop(primvars, prop_name, meta, rm, inherit_node=rm_scene)        
         else:
             super().update_object_primvar(ob, primvars, prop_name)
-        rman_sg_mesh.sg_node.SetPrimVars(primvars)
+        rman_sg_mesh.sg_mesh.SetPrimVars(primvars)
         ob.to_mesh_clear()
 
     def update(self, ob, rman_sg_mesh, input_mesh=None, sg_node=None):

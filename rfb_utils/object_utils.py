@@ -169,6 +169,15 @@ def has_empty_parent(ob):
         return True
     return False
 
+def find_parent(ob):
+    # Look for a parent that is not an armature or a camera
+    if ob.parent is not None:
+        if ob.parent.type in ['ARMATURE', 'CAMERA']:
+            return find_parent(ob.parent)
+        return ob.parent
+    return None
+
+
 def prototype_key(ob):
     use_gpu_subdiv = getattr(bpy.context.preferences.system, 'use_gpu_subdivision', False)
     if isinstance(ob, bpy.types.DepsgraphObjectInstance):

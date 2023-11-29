@@ -85,7 +85,6 @@ class PRMAN_MT_Viewport_Res_Mult_Menu(Menu):
 class PRMAN_MT_Viewport_Channel_Sel_Menu(Menu):
     bl_label = "Channel"
     bl_idname = "PRMAN_MT_Viewport_Channel_Sel_Menu"
-    bl_options = {"INTERNAL"}
 
     @classmethod
     def poll(cls, context):

@@ -5,7 +5,7 @@ from ...rfb_utils import string_utils
 from ...rfb_utils import prefs_utils
 from ...rfb_utils import transform_utils
 from ...rfb_logger import rfb_log
-from ...rman_constants import RMAN_AREA_LIGHT_TYPES, USE_GPU_MODULE
+from ...rman_constants import RMAN_AREA_LIGHT_TYPES, USE_GPU_MODULE, BLENDER_41
 from .barn_light_filter_draw_helper import BarnLightFilterDrawHelper
 from .frustrum_draw_helper import FrustumDrawHelper
 from mathutils import Vector, Matrix, Quaternion
@@ -573,7 +573,10 @@ else:
 
 _SHADER_ = None
 if not bpy.app.background:
-    _SHADER_ = gpu.shader.from_builtin('3D_UNIFORM_COLOR')
+    uniform_color =  '3D_UNIFORM_COLOR'
+    if BLENDER_41:
+        uniform_color = 'UNIFORM_COLOR'
+    _SHADER_ = gpu.shader.from_builtin(uniform_color)
 
 _SELECTED_COLOR_ = (1, 1, 1)
 _WIRE_COLOR_ = (0, 0, 0)

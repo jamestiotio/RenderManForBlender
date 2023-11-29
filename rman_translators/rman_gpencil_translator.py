@@ -150,7 +150,7 @@ class RmanGPencilTranslator(RmanTranslator):
 
         rman_sg_gpencil.sg_node.AddChild(points_sg)                     
         
-    def _create_curve(self, ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=False):
+    def _create_curve(self, ob, i, lyr, stroke, mat, rman_sg_gpencil, rman_sg_material, adjust_point=False):
         gp_ob = ob.data       
 
         vertsArray = []
@@ -173,7 +173,7 @@ class RmanGPencilTranslator(RmanTranslator):
 
         if len(points) < 4:
             # not enough points to be a curve. export as points
-            self._create_points(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=adjust_point)
+            self._create_points(ob, i, lyr, stroke, mat, rman_sg_gpencil, rman_sg_material, adjust_point=adjust_point)
             return
 
         if adjust_point:
@@ -201,7 +201,7 @@ class RmanGPencilTranslator(RmanTranslator):
 
         # Attach material
         if rman_sg_material:      
-            scenegraph_utils.set_material(curves_sg, rman_sg_material.sg_stroke_mat, rman_sg_material, ob=ob)
+            scenegraph_utils.set_material(curves_sg, rman_sg_material.sg_stroke_mat, rman_sg_material, mat=mat, ob=ob)
 
         rman_sg_gpencil.sg_node.AddChild(curves_sg)    
 
@@ -225,7 +225,7 @@ class RmanGPencilTranslator(RmanTranslator):
                 rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
 
                 if len(stroke.triangles) > 0 and rman_sg_material.sg_fill_mat:
-                    self._create_mesh(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=_ADJUST_POINT_) 
+                    self._create_mesh(ob, j, lyr, stroke, mat, rman_sg_gpencil, rman_sg_material, adjust_point=_ADJUST_POINT_) 
                     if rman_sg_material.sg_stroke_mat:
                         if mat.grease_pencil.mode in ['DOTS', 'BOX']:
                             self._create_points(ob, j, lyr, stroke, mat, rman_sg_gpencil, rman_sg_material, adjust_point=_ADJUST_POINT_)

@@ -579,11 +579,21 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='bxdf_in',
         split.label(text=socket.identifier + ':')
 
         if prefs_utils.single_node_view():
-            if socket.is_linked:
-                rman_icon = rfb_icons.get_node_icon(node.bl_label)            
-                split.label(text='%s (%s)' % (node.name, node.bl_label), icon_value=rman_icon.icon_id)
+            split.context_pointer_set("socket", socket)
+            split.context_pointer_set("node", output_node)
+            split.context_pointer_set("nodetree", nt)                 
+            if input_name in ['integrator_in']:
+                if socket.is_linked:
+                    rman_icon = rfb_icons.get_node_icon(node.bl_label)            
+                    split.menu('NODE_MT_renderman_connection_menu', text='%s (%s)' % (node.name, node.bl_label), icon_value=rman_icon.icon_id)
+                else:
+                    split.menu('NODE_MT_renderman_connection_menu', text='None', icon='NODE_MATERIAL')
             else:
-                split.menu('NODE_MT_renderman_connection_menu', text='None', icon='NODE_MATERIAL')   
+                if socket.is_linked:
+                    rman_icon = rfb_icons.get_node_icon(node.bl_label)            
+                    split.label(text='%s (%s)' % (node.name, node.bl_label), icon_value=rman_icon.icon_id)
+                else:
+                    split.menu('NODE_MT_renderman_connection_menu', text='None', icon='NODE_MATERIAL')   
 
             layout.separator()                     
 

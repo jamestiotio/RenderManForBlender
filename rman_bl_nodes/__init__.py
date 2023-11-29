@@ -18,6 +18,7 @@ from ..rman_properties import rman_properties_camera
 from ..rman_constants import RFB_ARRAYS_MAX_LEN
 from ..rman_constants import CYCLES_NODE_MAP
 from ..rman_constants import RMAN_FAKE_NODEGROUP
+from ..rman_constants import BLENDER_41
 from nodeitems_utils import NodeCategory, NodeItem
 from collections import OrderedDict
 from copy import deepcopy
@@ -674,6 +675,65 @@ class RendermanNodeItem(NodeItem):
                 layout.menu('NODE_MT_RM_SampleFilter_Category_Menu')
                 layout.menu('NODE_MT_RM_DisplayFilter_Category_Menu')
 
+class NODE_MT_RM_CATEGORY(bpy.types.Menu):
+    bl_label = "RenderMan"
+    bl_idname = "NODE_MT_RM_CATEGORY"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+    
+    @classmethod
+    def get_icon_id(cls):
+        return rfb_icons.get_icon("rman_blender").icon_id      
+
+    def draw(self, context):
+        layout = self.layout
+        if context.space_data.shader_type == 'OBJECT':
+            light = getattr(context, 'light', None)
+            if light:
+                nt = light.node_tree                        
+                layout.context_pointer_set("nodetree", nt)                 
+                layout.menu('NODE_MT_RM_Pattern_Category_Menu')
+                return
+
+            mat = getattr(context, 'material', None)
+            if not mat:
+                return
+            if not shadergraph_utils.is_renderman_nodetree(mat):
+                rman_icon = rfb_icons.get_icon('rman_graph')
+                layout.operator(
+                    'material.rman_add_rman_nodetree', icon_value=rman_icon.icon_id).idtype = "material"
+            else:
+                nt = mat.node_tree                        
+                layout.context_pointer_set("nodetree", nt) 
+                layout.menu('NODE_MT_RM_Bxdf_Category_Menu')
+                layout.menu('NODE_MT_RM_Displacement_Category_Menu')
+                layout.menu('NODE_MT_RM_Pattern_Category_Menu')
+                layout.menu('NODE_MT_RM_PxrSurface_Category_Menu')
+                layout.menu('NODE_MT_RM_Light_Category_Menu')
+
+        elif context.space_data.shader_type == 'WORLD':
+            world = context.scene.world
+            if not world.renderman.use_renderman_node:
+                rman_icon = rfb_icons.get_icon('rman_graph')
+                layout.operator('material.rman_add_rman_nodetree', icon_value=rman_icon.icon_id).idtype = 'world'
+            else:
+                nt = world.node_tree
+                layout.context_pointer_set("nodetree", nt) 
+                layout.menu('NODE_MT_RM_Integrators_Category_Menu')
+                layout.menu('NODE_MT_RM_SampleFilter_Category_Menu')
+                layout.menu('NODE_MT_RM_DisplayFilter_Category_Menu')     
+
+def add_renderman_category(self, context):
+    rd = context.scene.render
+    if rd.engine != 'PRMAN_RENDER':
+        return    
+
+    layout = self.layout
+    layout.menu('NODE_MT_RM_CATEGORY', text='RenderMan', icon_value=bpy.types.VIEW3D_MT_renderman_add_object_menu.get_icon_id())          
+
 
 def register_rman_nodes():
     global __RMAN_NODE_CATEGORIES__
@@ -850,6 +910,10 @@ def register():
     rman_bl_nodes_shaders.register()
     rman_bl_nodes_ops.register()
     rman_bl_nodes_menus.register()
+
+    if BLENDER_41:
+        register_utils.rman_register_class(NODE_MT_RM_CATEGORY)
+        bpy.types.NODE_MT_add.append(add_renderman_category)
 
 def unregister():
     try:
