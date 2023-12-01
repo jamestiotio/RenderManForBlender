@@ -9,6 +9,7 @@ from .rfb_logger import rfb_log
 from .rman_sg_nodes.rman_sg_lightfilter import RmanSgLightFilter
 
 from . import rman_constants
+from copy import deepcopy
 import bpy
 
 class RmanUpdate:
@@ -432,7 +433,7 @@ class RmanSceneSync(object):
         # mark all objects in a collection
         # as needing their instances updated
         for o in coll.all_objects:
-            if o.type in ('ARMATURE', 'CAMERA'):
+            if o.type in ('CAMERA'):
                 continue
             if o.original not in self.rman_updates:
                 rman_update = RmanUpdate()
@@ -444,6 +445,10 @@ class RmanSceneSync(object):
         ob = dps_update.id.evaluated_get(self.rman_scene.depsgraph)
         coll = ob.instance_collection
         rfb_log().debug("\tEmpty Instancer %s Updated" % ob.name) 
+        rman_update = self.rman_updates.get(ob.original, None)
+        if rman_update and rman_update.is_updated_attributes:
+            # this is just an attribute edit
+            return
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):    
             proto_key = object_utils.prototype_key(ob)     
             rman_sg_node = self.rman_scene.get_rman_prototype(proto_key, ob=ob, create=True)
@@ -454,14 +459,15 @@ class RmanSceneSync(object):
         # mark all objects in the instance collection
         # as needing their instances updated            
         for o in coll.all_objects:
-            if o.type in ('ARMATURE', 'CAMERA'):
+            if o.type in ('CAMERA'):
                 continue
             if o.original not in self.rman_updates:
-                rman_update = RmanUpdate()
-                rman_update.is_updated_geometry = dps_update.is_updated_geometry
-                rman_update.is_updated_shading = dps_update.is_updated_shading
-                rman_update.is_updated_transform = dps_update.is_updated_transform
-                self.rman_updates[o.original] = rman_update                          
+                rfb_log().debug("\t   %s needs updating." % o.original.name)                
+                child_rman_update = RmanUpdate()
+                child_rman_update.is_updated_geometry = dps_update.is_updated_geometry
+                child_rman_update.is_updated_shading = dps_update.is_updated_shading
+                child_rman_update.is_updated_transform = dps_update.is_updated_transform
+                self.rman_updates[o.original] = child_rman_update                          
 
     def update_portals(self, ob):
         for portal in scene_utils.get_all_portals(ob):
@@ -800,8 +806,9 @@ class RmanSceneSync(object):
                 psys = None 
                 is_new_object = False
                 proto_key = object_utils.prototype_key(instance)      
-                is_empty_instancer = False        
-                if instance.is_instance:
+                is_empty_instancer = False
+                is_instance = instance.is_instance        
+                if is_instance:
                     ob_key = instance.instance_object.original      
                     psys = instance.particle_system
                     instance_parent = instance.parent 
@@ -827,6 +834,11 @@ class RmanSceneSync(object):
                 rman_update = self.rman_updates.get(ob_key, None)
                 if not rman_sg_node:
                     # this is a new object.
+                    
+                    if not self.rman_scene.check_visibility(instance, ob_eval=ob_eval):
+                        # don't t export this object if it's not visible
+                        continue
+
                     rman_sg_node = self.rman_scene.export_data_block(proto_key, ob_eval)
                     if not rman_sg_node:
                         continue
@@ -870,6 +882,11 @@ class RmanSceneSync(object):
                     user_exist = False
                     for o in users[ob_eval.original]:
                         if o.original in self.rman_updates:
+                            parent = getattr(o.original, 'parent', None)
+                            if parent == ob_eval.original:
+                                # don't consider this object if there's a
+                                # parent/child relation
+                                continue
                             rfb_log().debug("\t%s user updated (%s)" % (ob_eval.name, o.name))
                             user_exist = True
                             break
@@ -883,9 +900,15 @@ class RmanSceneSync(object):
                         rman_update = self.rman_updates.get(instance_parent.original, None)
                         if rman_update is None:
                             continue
+                        if rman_update.is_updated_attributes:
+                            continue
                         rfb_log().debug("\t%s parent updated (%s)" % (ob_eval.name, instance_parent.name))
 
-                if rman_sg_node and not is_new_object and not instance.is_instance:
+                # Originally, we were only updating the prototype, if the DepsgraphInstance
+                # was not is_instance. However, this doesn't work for META
+                # objects as the mesh has is_instance=True.
+                # So we now let whichever DepsgraphInstance we get first do the prototype updating
+                if rman_sg_node and not is_new_object: # and not is_instance:
                     if proto_key not in already_udpated:
                         if rman_update.is_updated_attributes:
                             # this should be a simple attribute change

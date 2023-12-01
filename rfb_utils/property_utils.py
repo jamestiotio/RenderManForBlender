@@ -335,8 +335,8 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
                 if pname in node.prop_meta:
                     meta = prop_meta.get(pname)
                     always_write = meta.get('always_write', always_write)
-                    if always_write or force_write:
-                        rfb_log().debug('Param: %s for Node: %s is marked always_write' % (pname, node.name))
+                    # if always_write or force_write:
+                    #    rfb_log().debug('Param: %s for Node: %s is marked always_write' % (pname, node.name))
 
                 if not always_write and val == dflt:
                     return                  

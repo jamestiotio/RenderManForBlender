@@ -563,7 +563,7 @@ class RmanScene(object):
             if rman_sg_material:
                 self.rman_materials[mat.original] = rman_sg_material
 
-    def check_visibility(self, instance):
+    def check_visibility(self, instance, ob_eval=None):
         if not self.is_interactive:
             return True
         viewport = self.context.space_data
@@ -576,7 +576,8 @@ class RmanScene(object):
             parent_visible = instance.parent.visible_in_viewport_get(viewport)
             return (ob_eval_visible or parent_visible)
 
-        ob_eval = instance.object.evaluated_get(self.depsgraph)
+        if ob_eval is None:
+            ob_eval = instance.object.evaluated_get(self.depsgraph)
         visible = ob_eval.visible_in_viewport_get(viewport)
         return visible
 
