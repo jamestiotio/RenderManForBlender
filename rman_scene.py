@@ -151,7 +151,8 @@ class RmanScene(object):
         self.rman_translators['HAIR'] = RmanHairTranslator(rman_scene=self)
         self.rman_translators['GROUP'] = RmanGroupTranslator(rman_scene=self)
         self.rman_translators['EMPTY'] = RmanEmptyTranslator(rman_scene=self)
-        self.rman_translators['EMPTY_INSTANCER'] = RmanEmptyTranslator(rman_scene=self)
+        self.rman_translators['ARMATURE'] = self.rman_translators['EMPTY']
+        self.rman_translators['EMPTY_INSTANCER'] = self.rman_translators['EMPTY']
         self.rman_translators['POINTS'] = RmanPointsTranslator(rman_scene=self)
         self.rman_translators['META'] = RmanBlobbyTranslator(rman_scene=self)
         self.rman_translators['PARTICLES'] = RmanParticlesTranslator(rman_scene=self)
@@ -676,7 +677,7 @@ class RmanScene(object):
             ob = ob_inst.object
             rfb_log().debug("   Exported %d/%d instances... (%s)" % (i, total, ob.name))
             self.rman_render.stats_mgr.set_export_stats("Exporting instances",i/total)
-            if ob.type in ('ARMATURE', 'CAMERA'):
+            if ob.type in ('CAMERA'):
                 continue
 
             if selected_objects and not self.is_instance_selected(ob_inst):

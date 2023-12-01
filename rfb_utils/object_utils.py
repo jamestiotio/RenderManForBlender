@@ -172,7 +172,7 @@ def has_empty_parent(ob):
 def find_parent(ob):
     # Look for a parent that is not an armature or a camera
     if ob.parent is not None:
-        if ob.parent.type in ['ARMATURE', 'CAMERA']:
+        if ob.parent.type in ['CAMERA']:
             return find_parent(ob.parent)
         return ob.parent
     return None

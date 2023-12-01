@@ -495,8 +495,8 @@ class RmanSceneSync(object):
         ob_eval = dps_update.id.evaluated_get(self.rman_scene.depsgraph)
         rman_type = object_utils._detect_primitive_(ob_eval)
 
-        if ob_eval.type in ('ARMATURE'):
-            return
+        #if ob_eval.type in ('ARMATURE'):
+        #    return
         
         # These types need special handling                
         if rman_type == 'EMPTY':
@@ -791,7 +791,7 @@ class RmanSceneSync(object):
         rfb_log().debug("Updating instances")        
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene): 
             for instance in self.rman_scene.depsgraph.object_instances:
-                if instance.object.type in ('ARMATURE', 'CAMERA'):
+                if instance.object.type in ('CAMERA'):
                     continue
 
                 ob_key = instance.object.original
