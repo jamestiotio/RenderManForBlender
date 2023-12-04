@@ -45,7 +45,7 @@ class PRMAN_OT_Renderman_Package(Operator):
 
     bl_idname = "renderman.scene_package"
     bl_label = "Package Scene"
-    bl_description = "Package your scene including textures into a zip file."
+    bl_description = "Package your scene including textures into a zip file. The directory you choose should be empty."
     bl_options = {'INTERNAL'}
 
     directory: StringProperty(subtype='FILE_PATH')
@@ -74,6 +74,12 @@ class PRMAN_OT_Renderman_Package(Operator):
         if not bpy.data.is_saved:            
             self.report({"ERROR"}, "Scene not saved yet.")
             return {'FINISHED'}
+        
+        # check if the directory is not empty
+        with os.scandir(self.directory) as f:
+            if any(f):
+                self.report({"ERROR"}, "The selected directory is not empty")
+                return {'FINISHED'}            
 
         z = zipfile.ZipFile(self.filepath, mode='w')
 
