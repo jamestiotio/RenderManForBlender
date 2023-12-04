@@ -7,7 +7,7 @@ from ..rfb_utils import draw_utils
 from ..rfb_utils.property_utils import BlPropInfo, __LOBES_ENABLE_PARAMS__
 from ..rfb_utils import filepath_utils
 from ..rman_config import __RFB_CONFIG_DICT__
-from ..rman_constants import RFB_FLOAT3
+from ..rman_constants import RFB_FLOAT3, RFB_SHADER_ALLOWED_CONNECTIONS
 from .. import rman_bl_nodes
 from .. import rfb_icons
 from .. import rman_render
@@ -615,6 +615,31 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             return True                       
 
         return True
+    
+    def check_allowed_connections(self, node_tree, link):
+        to_node = link.to_node
+        from_node = link.from_node
+
+        if to_node.bl_label not in RFB_SHADER_ALLOWED_CONNECTIONS and from_node.bl_label not in RFB_SHADER_ALLOWED_CONNECTIONS:
+            return True
+        
+        if to_node.bl_label in RFB_SHADER_ALLOWED_CONNECTIONS:
+            ac_dict = RFB_SHADER_ALLOWED_CONNECTIONS[to_node.bl_label]
+            to_socket = link.to_socket
+            allowed = ac_dict['inputs'].get(to_socket.name, list())
+            if from_node.bl_label in allowed:
+                return True
+            return False
+        
+        if from_node.bl_label in RFB_SHADER_ALLOWED_CONNECTIONS:
+            ac_dict = RFB_SHADER_ALLOWED_CONNECTIONS[from_node.bl_label]
+            from_socket = link.from_socket
+            allowed = ac_dict['outputs'].get(from_socket.name, list())
+            if to_node.bl_label in allowed:
+                return True
+            return False
+            
+        return True
 
     def update(self):
         node_tree = self.id_data
@@ -630,6 +655,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             accept_link = True
             if hasattr(to_node, 'accept_link'):
                 accept_link = to_node.accept_link(node_tree, link)
+            accept_link = accept_link and self.check_allowed_connections(node_tree, link)
             if not accept_link:
                 node_tree = self.id_data
                 try:

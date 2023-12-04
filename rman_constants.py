@@ -215,3 +215,83 @@ RMAN_BL_NODE_DESCRIPTIONS = {
     'PxrVisualizer': "PxrVisualizer is a utility integrator that can be used to navigate large scenes and inspect geometry during Interactive re-rendering. It allows different styles of viewing, including shaded, flat, normals, st, wireframe.",
 
 }
+
+'''
+Dictionary that contains restrictions on shader connections
+ex: LamaSurface should not be an input to LamaMix
+
+{ node_type {
+    'outputs': {
+        name_of_output: (list of node types)
+    }
+    'inputs': {
+        name_of_inputs: (list of node types)
+    }
+}
+
+}
+'''
+RFB_SHADER_ALLOWED_CONNECTIONS = {
+    'LamaSurface': {
+        'outputs': {
+            'bxdf_out': ['RendermanOutputNode']
+        },
+        'inputs': {
+            'materialFront': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+                              'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
+                              'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
+                              'LamaTranslucent', 'LamaTricolorSSS'
+                              ],
+            'materialBack': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+                              'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
+                              'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
+                              'LamaTranslucent', 'LamaTricolorSSS'
+                              ],
+        }          
+    },
+    'LamaAdd': {
+        'outputs': {},
+        'inputs': {
+            'material1': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+                              'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
+                              'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
+                              'LamaTranslucent', 'LamaTricolorSSS'
+                              ],
+            'material2': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+                              'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
+                              'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
+                              'LamaTranslucent', 'LamaTricolorSSS'
+                              ],            
+        }
+    },
+    'LamaMix': {
+        'outputs': {},
+        'inputs': {
+            'material1': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+                              'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
+                              'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
+                              'LamaTranslucent', 'LamaTricolorSSS'
+                              ],
+            'material2': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+                              'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
+                              'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
+                              'LamaTranslucent', 'LamaTricolorSSS'
+                              ],            
+        }
+    },
+    'LamaLayer': {
+        'outputs': {},
+        'inputs': {
+            'material1': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+                              'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
+                              'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
+                              'LamaTranslucent', 'LamaTricolorSSS'
+                              ],
+            'material2': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+                              'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
+                              'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
+                              'LamaTranslucent', 'LamaTricolorSSS'
+                              ],            
+        }
+    },        
+}
