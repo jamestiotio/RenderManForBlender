@@ -116,10 +116,10 @@
             "panel": "",
             "page": "Display",
             "name": "blender_ipr_denoiser",
-            "label": "Viewport Denoiser",
+            "label": "IPR Denoiser",
             "type": "int",
             "default": 0,
-            "help": "Select which denoiser to use to denoise viewport renders. Note, Optix requires an Nvidia GPU.",
+            "help": "Select which denoiser to use to denoise IPR renders. Optix requires an Nvidia GPU. Note, the Optix denoiser is built-in into 'it', so selecting Optix here will not do anything when rendering to 'it'.",
             "widget": "mapper",
             "options": "None:0|RenderMan Denoiser:1|Optix:2"
         },   
