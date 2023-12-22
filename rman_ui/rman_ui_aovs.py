@@ -109,12 +109,24 @@ class PRMAN_OT_Renderman_layer_channel_set_light_group(Operator):
                     if chan.channel_source == settings['channelSource'] and chan.channel_type == settings['channelType']:
                         chan_name = nm
                         break
+            found = False
             for idx, c in enumerate(rm_rl.dspy_channels):
                 # this channel with the same light group already exists
                 # use that instead
                 if chan_name == c.name and chan_light_group == c.light_group:
                     chan_ptr.dspy_chan_idx = idx
+                    found = True
                     return
+                
+            if not found:
+                # if there isn't an existing channel, add a new one
+                new_chan = rm_rl.dspy_channels.add()
+                new_chan.channel_name = chan_name   
+                new_chan.is_custom = True 
+                new_chan.channel_source = chan.channel_source
+                new_chan.channel_type = chan.channel_type
+                chan_ptr.dspy_chan_idx = len(rm_rl.dspy_channels)-1
+                chan = new_chan            
 
             chan.light_group = chan_light_group
             chan.name = chan_name
@@ -256,6 +268,10 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         # denoise options
         row = col.row()
         row.prop(item, 'denoise')
+        if rm_rl and rm_rl.custom_aov_index != 0:
+            # if the beauty/variance doesn't have denoise enable, disable
+            # the option
+            row.enabled = rm_rl.custom_aovs[0].denoise
 
         row = col.row()
         row.label(text='')

@@ -1585,7 +1585,7 @@
             "help": "Inserts a string of custom command arguments into the render process"                   
         },    
         {
-            "panel": "",
+            "panel": "RENDER_PT_renderman_spooling_export_options",
             "page": "Denoising",
             "name": "ai_denoiser_asymmetry",
             "label": "Asymmetry",
@@ -1635,6 +1635,51 @@
             "default": 0,
             "widget": "checkbox",
             "help": "Enable versbose output."
+        },
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "Denoising",
+            "name": "ai_denoiser_remap_diffuse",
+            "label": "Remap Diffuse",
+            "type": "string",
+            "default": "",
+            "help": "Consider the following comma-separate list of channels as diffuse outputs. Note, we assume channels named 'subsurface' and 'subsurfaceLobe' are part of the diffuse output."
+        },        
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "Denoising",
+            "name": "ai_denoiser_remap_specular",
+            "label": "Remap Specular",
+            "type": "string",
+            "default": "",
+            "help": "Consider the following comma-separate list of channels as specular outputs. Note, we assume channels named 'transmissiveSingleScatterLobe' and 'transmissiveGlassLobe' are part of the specular output."
+        },
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "Denoising",
+            "name": "ai_denoiser_remap_albedo",
+            "label": "Remap Albedo",
+            "type": "string",
+            "default": "",
+            "help": "Consider the following comma-separate list of channels as albedo outputs."
+        },  
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "Denoising",
+            "name": "ai_denoiser_remap_irradiance",
+            "label": "Remap Irradiance",
+            "type": "string",
+            "default": "",
+            "help": "Consider the following comma-separate list of channels as irradiance outputs."
+        },
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "Denoising",
+            "name": "ai_denoiser_remap_alpha",
+            "label": "Remap Alpha",
+            "type": "string",
+            "default": "",
+            "help": "Consider the following comma-separate list of channels as alpha outputs."
         }
     ]
 }

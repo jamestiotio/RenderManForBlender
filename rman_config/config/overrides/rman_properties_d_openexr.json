@@ -1,0 +1,9 @@
+{
+    "name": "d_openexr.args",
+    "params": [
+        {
+            "name": "asrgba",    
+            "default": 0
+        }        
+    ]
+}
