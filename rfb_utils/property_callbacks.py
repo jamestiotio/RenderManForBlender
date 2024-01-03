@@ -204,7 +204,15 @@ def update_func(self, context):
     node = self.node if hasattr(self, 'node') else self
 
     if hasattr(node, 'id_data'):
-        node.id_data.update_tag()
+        node_type = getattr(node, 'renderman_node_type', '')
+        if node_type in ['projection']:
+            # if this is from a projection node, we need to tell
+            # the camera to update
+            users = context.blend_data.user_map(subset={node.id_data})
+            for o in users[node.id_data]:
+                o.update_tag()
+        else:
+            node.id_data.update_tag()
     elif context and hasattr(context, 'active_object'):
         if context.active_object:
             if context.active_object.type in ['CAMERA', 'LIGHT']:
@@ -268,3 +276,6 @@ def update_primvar_func(self, s, context):
         if ob is None:
             return
     scenegraph_utils.update_sg_node_primvar(s, context, bl_object=ob)      
+
+def update_displays_func(self, context):
+    scenegraph_utils.update_sg_displays(context)

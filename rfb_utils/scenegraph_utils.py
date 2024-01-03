@@ -91,6 +91,11 @@ def update_sg_node_primvar(prop_name, context, bl_object=None):
     rr = rman_render.RmanRender.get_rman_render()
     rr.rman_scene_sync.update_sg_node_primvar(prop_name, context, bl_object=bl_object)
 
+def update_sg_displays(context):
+    from .. import rman_render
+    rr = rman_render.RmanRender.get_rman_render()
+    rr.rman_scene_sync.update_displays(context)    
+
 def export_vol_aggregate(bl_scene, primvar, ob):
     vol_aggregate_group = []
     for i,v in enumerate(bl_scene.renderman.vol_aggregates):

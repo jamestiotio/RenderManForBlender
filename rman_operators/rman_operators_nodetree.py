@@ -665,14 +665,12 @@ class PRMAN_OT_Add_Projection_Nodetree(bpy.types.Operator):
     proj_name: EnumProperty(items=get_type_items, name="Projection")    
     
     def execute(self, context):
-        ob = context.object
-        if ob.type != 'CAMERA':
-            return {'FINISHED'}
+        cam = context.camera
 
-        nt = bpy.data.node_groups.new(ob.data.name, 'ShaderNodeTree')
+        nt = bpy.data.node_groups.new(cam.name, 'ShaderNodeTree')
         output = nt.nodes.new('RendermanProjectionsOutputNode')
         output.select = False
-        ob.data.renderman.rman_nodetree = nt
+        cam.renderman.rman_nodetree = nt
 
         proj_node_name = rman_bl_nodes.__BL_NODES_MAP__[self.proj_name]    
         default = nt.nodes.new(proj_node_name)
@@ -680,7 +678,7 @@ class PRMAN_OT_Add_Projection_Nodetree(bpy.types.Operator):
         default.location[0] -= 300
         default.select = False
         nt.links.new(default.outputs[0], output.inputs[0])      
-        ob.update_tag(refresh={'DATA'})  
+        cam.update_tag()  
 
         return {"FINISHED"}          
 

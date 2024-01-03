@@ -4,6 +4,7 @@ from ..rfb_utils import string_utils
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import upgrade_utils
 from ..rfb_utils.envconfig_utils import envconfig
+from ..rman_constants import RMAN_FAKE_NODEGROUP
 from bpy.app.handlers import persistent
 import bpy
 import os
@@ -52,7 +53,27 @@ def frame_change_post(bl_scene):
     string_utils.update_frame_token(bl_scene.frame_current)        
 
 @persistent
-def despgraph_post_handler(bl_scene, depsgraph):        
+def despgraph_post_handler(bl_scene, depsgraph):    
+    if len(depsgraph.updates) < 1 and depsgraph.id_type_updated('NODETREE'):    
+        # Updates is empty. Assume this is a change to our ramp
+        # nodes in one of our fake nodegroup
+        # Since we don't know which ramp was updated, just call update_tag
+        # on all of them
+        rfb_log().debug("DepsgraphUpdates is empty. Assume this is a ramp edit.")
+        for ng in bpy.data.node_groups:
+            if not ng.name.startswith(RMAN_FAKE_NODEGROUP):
+                continue
+            users = bpy.context.blend_data.user_map(subset={ng})
+            for o in users[ng]:
+                if isinstance(o, bpy.types.Material):
+                    o.node_tree.update_tag()
+                elif isinstance(o, bpy.types.Light):
+                    o.node_tree.update_tag()
+                elif isinstance(o, bpy.types.World):
+                    o.update_tag()
+                elif isinstance(o, bpy.types.Camera):
+                    o.update_tag()
+
     for update in depsgraph.updates:
         texture_utils.depsgraph_handler(update, depsgraph)
 
