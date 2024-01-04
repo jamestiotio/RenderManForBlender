@@ -233,7 +233,25 @@ def upgrade_260_0(scene):
     for ob in bpy.data.objects:
         if ob.type == "MESH" and object_utils.is_subd_last(ob):
             ob.data.renderman.rman_subdiv_scheme = 'catmull-clark'
-    
+
+    '''
+    In 25 and below __Nref and __WNref were part of the reference_pose
+    collection. However, because the length was the same __Pref, this only
+    allowed for vertex normals, and not facevarying normals. So, for 26, we've
+    separated out the normals into their own collection (reference_pose_normals)
+    '''
+    for mesh in bpy.data.meshes:
+        rm = mesh.renderman
+        for rp in rm.reference_pose:
+            if not rp.has_Nref and not rp.has_WNref:
+                continue
+            rpn = rm.reference_pose_normals.add()
+            if rp.has_Nref:
+                rpn.has_Nref = True
+                rpn.rman__Nref = rp.rman__Nref
+            if rp.has_WNref:
+                rpn.has_WNref = True
+                rpn.rman__WNref = rp.rman__WNref
 
 __RMAN_SCENE_UPGRADE_FUNCTIONS__ = OrderedDict()
     

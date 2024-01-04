@@ -138,19 +138,26 @@ def _get_material_ids(ob, geo):
     material_ids = fast_material_ids.tolist()
     return material_ids
 
-def _export_reference_pose(ob, rm, rixparams, vertex_detail):
+def _export_reference_pose(ob, rman_sg_mesh, rm, rixparams):
     rman__Pref = []
     rman__WPref = []
     rman__Nref = []
     rman__WNref = []
+
+    vertex_detail = rman_sg_mesh.npoints 
+    facevarying_detail = rman_sg_mesh.nverts 
+    uniform_detail = rman_sg_mesh.npolys
+
     for rp in rm.reference_pose:
         if rp.has_Pref:
             rman__Pref.append( rp.rman__Pref)
         if rp.has_WPref:
             rman__WPref.append( rp.rman__WPref)
+
+    for rp in rm.reference_pose_normals:
         if rp.has_Nref:
             rman__Nref.append( rp.rman__Nref)
-        if rp.has_WPref:
+        if rp.has_WNref:
             rman__WNref.append( rp.rman__WNref)
 
     if rman__Pref:
@@ -168,14 +175,23 @@ def _export_reference_pose(ob, rm, rixparams, vertex_detail):
     if rman__Nref:
         if len(rman__Nref) == vertex_detail:
             rixparams.SetNormalDetail('__Nref', rman__Nref, 'vertex')
+        elif len(rman__Nref) == facevarying_detail:
+            rixparams.SetNormalDetail('__Nref', rman__Nref, 'facevarying')
+        elif len(rman__Nref) == uniform_detail:
+            rixparams.SetNormalDetail('__Nref', rman__Nref, 'uniform')            
         else:
             rfb_log().error("Number of Nref primvars do not match. Please re-freeze the reference position.")
         
     if rman__WNref:
         if len(rman__WNref) == vertex_detail:
-            rixparams.SetNormalDetail('__WNref', rman__WNref, 'vertex')
+            rixparams.SetNormalDetail('__Nref', rman__Nref, 'vertex')
+        elif len(rman__WNref) == facevarying_detail:
+            rixparams.SetNormalDetail('__WNref', rman__WNref, 'facevarying')
+        elif len(rman__WNref) == uniform_detail:
+            rixparams.SetNormalDetail('__WNref', rman__WNref, 'uniform')            
         else:
             rfb_log().error("Number of WNref primvars do not match. Please re-freeze the reference position.")
+            print("%d vs %d vs %d" % (len(rman__Nref), vertex_detail, facevarying_detail))
 
 def export_tangents(ob, geo, rixparams, uvmap="", name=""):
     # also export the tangent and bitangent vectors
@@ -210,7 +226,6 @@ def _get_primvars_(ob, rman_sg_mesh, geo, rixparams):
     # when a geometry node is active...
     rm = ob.original.data.renderman
 
-    vertex_detail = rman_sg_mesh.npoints 
     facevarying_detail = rman_sg_mesh.nverts 
 
     if rm.export_default_uv:
@@ -229,7 +244,7 @@ def _get_primvars_(ob, rman_sg_mesh, geo, rixparams):
 
     # reference pose
     if hasattr(rm, 'reference_pose'):
-        _export_reference_pose(ob, rm, rixparams, vertex_detail)
+        _export_reference_pose(ob, rman_sg_mesh, rm, rixparams)
     
     # custom prim vars
     for p in rm.prim_vars:

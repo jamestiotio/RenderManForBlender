@@ -205,6 +205,19 @@ class RendermanReferencePosePrimVars(bpy.types.PropertyGroup):
     rman__WNref: FloatVectorProperty(name='rman__WNref',
                                 default=(0,0, 0), size=3,
                                 subtype="XYZ")        
+    
+class RendermanReferencePoseNormalsPrimVars(bpy.types.PropertyGroup):
+
+    has_Nref: BoolProperty(name='has_Nref', default=False)
+    has_WNref: BoolProperty(name='has_WNref', default=False)    
+
+    rman__Nref: FloatVectorProperty(name='rman__Nref',
+                                default=(0,0, 0), size=3,
+                                subtype="XYZ")    
+
+    rman__WNref: FloatVectorProperty(name='rman__WNref',
+                                default=(0,0, 0), size=3,
+                                subtype="XYZ")            
 
 class RENDERMAN_UL_Array_List(bpy.types.UIList):
 
@@ -290,6 +303,7 @@ classes = [
     LightLinking,
     RendermanMeshPrimVar,   
     RendermanReferencePosePrimVars,
+    RendermanReferencePoseNormalsPrimVars,
     Tab_CollectionGroup,
     RENDERMAN_UL_Array_List,
     RendermanArrayGroup
