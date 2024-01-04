@@ -17,7 +17,10 @@ class RENDERMAN_UL_UserAttributes_List(bpy.types.UIList):
         layout.label(text=item.name)
 
 class RendermanUserAttributesGroup(bpy.types.PropertyGroup):
-    name: StringProperty(name="Name", default="")
+    name: StringProperty(name="Name", default="", description="The name of your attribute. You can then look up these attributes in your shading network, using PxrAttribute. The attribute would be of the form 'namespace:name'. For example, if name is 'foo' and namespace is left blank, the name you use for PxrAttribute would be 'user:foo'.")
+    namespace: StringProperty(name="Namespace", default="",
+                              description="The namespace for your attribute. If left blank, we put these in the user namespace.  "
+                              )
     type: EnumProperty(name="Type",
         items=[
               ('float', 'float', ''),

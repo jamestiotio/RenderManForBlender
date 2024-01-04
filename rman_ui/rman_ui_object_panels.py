@@ -809,6 +809,7 @@ class OBJECT_PT_renderman_object_custom_attributes(CollectionPanel, Panel):
         if prop_index > -1 and prop_index < len(prop):
             item = prop[prop_index]
             layout.prop(item, 'name')
+            layout.prop(item, 'namespace')
             layout.prop(item, 'type')
             layout.prop(item, 'value_%s' % item.type, slider=True)        
 

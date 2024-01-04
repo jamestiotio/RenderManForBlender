@@ -226,7 +226,10 @@ class RmanTranslator(object):
         for ua in rm.user_attributes:
             param_type = ua.type
             val = getattr(ua, 'value_%s' % ua.type)
-            ri_name = 'user:%s' % ua.name
+            namespace = ua.namespace
+            if namespace == '':
+                namespace = 'user'
+            ri_name = '%s:%s' % (namespace, ua.name)
             property_utils.set_rix_param(attrs, param_type, ri_name, val, is_reference=False, is_array=False)
    
 
