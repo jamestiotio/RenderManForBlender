@@ -58,10 +58,21 @@ def assetid_update_func(self, context, param_name):
 
                 node[param_colorspace] = val
             except AttributeError:
-                pass                
-    
-    if isinstance(ob, bpy.types.Material):
+                pass              
+
+    if hasattr(node, 'id_data'):        
+        if category in ['projection']:
+            # if this is from a projection node, we need to tell
+            # the camera to update
+            users = context.blend_data.user_map(subset={node.id_data})
+            for o in users[node.id_data]:
+                o.update_tag()    
+        else:    
+            node.id_data.update_tag()
+    elif isinstance(ob, bpy.types.Material):
         node.update_mat(ob)
+    elif isinstance(ob, bpy.types.World):
+        ob.update_tag()
     elif isinstance(ob, bpy.types.Object):
         ob.update_tag(refresh={'DATA'})
 

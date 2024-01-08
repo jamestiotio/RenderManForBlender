@@ -19,7 +19,8 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
 
     def execute(self, context):
         for mat in bpy.data.materials:
-            mat.use_nodes = True
+            if not mat.use_nodes:
+                mat.use_nodes = True            
             nt = mat.node_tree
             if shadergraph_utils.is_renderman_nodetree(mat):
                 continue
@@ -66,7 +67,8 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
         for light in bpy.data.lights:
             if light.renderman.use_renderman_node:
                 continue
-            light.use_nodes = True
+            if not light.use_nodes:
+                light.use_nodes = True
             light_type = light.type
             light.renderman.light_primary_visibility = False
             nt = light.node_tree
@@ -147,7 +149,8 @@ class SHADING_OT_convert_cycles_to_renderman_nodetree(bpy.types.Operator):
                 rm = ob.renderman
                 idblock = rm.rman_material_override            
 
-        idblock.use_nodes = True
+        if not idblock.use_nodes:
+            idblock.use_nodes = True
         nt = idblock.node_tree
 
         if idtype == 'material':
@@ -210,7 +213,8 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
         # nt = bpy.data.node_groups.new(idblock.name,
         #                              type='RendermanPatternGraph')
         #nt.use_fake_user = True
-        idblock.use_nodes = True
+        if not idblock.use_nodes:
+            idblock.use_nodes = True
         nt = idblock.node_tree
 
         if idtype == 'material':
@@ -337,7 +341,8 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                 rm = ob.renderman
                 idblock = rm.rman_material_override            
 
-        idblock.use_nodes = True
+        if not idblock.use_nodes:
+            idblock.use_nodes = True
         nt = idblock.node_tree
 
         if idtype == 'material':      
@@ -358,8 +363,8 @@ class SHADING_OT_add_integrator_nodetree(bpy.types.Operator):
     def execute(self, context):
         
         world = context.scene.world
-
-        world.use_nodes = True
+        if not world.use_nodes:
+            world.use_nodes = True
         nt = world.node_tree
        
         # world
@@ -394,7 +399,8 @@ class SHADING_OT_add_displayfilters_nodetree(bpy.types.Operator):
     def execute(self, context):
         
         world = context.scene.world
-        world.use_nodes = True
+        if not world.use_nodes:
+            world.use_nodes = True
         nt = world.node_tree
        
         world.renderman.use_renderman_node = True
@@ -433,7 +439,8 @@ class SHADING_OT_world_convert_material(bpy.types.Operator):
     def execute(self, context):
         
         world = context.scene.world
-        world.use_nodes = True
+        if not world.use_nodes:
+            world.use_nodes = True
         nt = world.node_tree
         shadergraph_utils.hide_cycles_nodes(world)
         output = nt.nodes.new('RendermanIntegratorsOutputNode')
@@ -475,7 +482,8 @@ class SHADING_OT_add_samplefilters_nodetree(bpy.types.Operator):
     def execute(self, context):
         
         world = context.scene.world
-        world.use_nodes = True
+        if not world.use_nodes:
+            world.use_nodes = True
         nt = world.node_tree
 
         world.renderman.use_renderman_node = True
@@ -514,7 +522,8 @@ class PRMAN_OT_New_bxdf(bpy.types.Operator):
         bxdf_name = self.bxdf_name
         mat = bpy.data.materials.new(bxdf_name)
         ob.active_material = mat
-        mat.use_nodes = True
+        if not mat.use_nodes:
+            mat.use_nodes = True
         nt = mat.node_tree
         shadergraph_utils.hide_cycles_nodes(mat)
         output = nt.nodes.new('RendermanOutputNode')
@@ -549,7 +558,8 @@ class PRMAN_OT_New_bxdf(bpy.types.Operator):
                             'light': context.light, 'world': context.scene.world}
             idblock = context_data[idtype]
 
-        idblock.use_nodes = True
+        if not idblock.use_nodes:
+            idblock.use_nodes = True
         nt = idblock.node_tree
 
         if idtype == 'material':      
@@ -575,7 +585,8 @@ class PRMAN_OT_New_Material_Override(bpy.types.Operator):
         bxdf_name = self.bxdf_name
         mat = bpy.data.materials.new(bxdf_name)
         ob.renderman.rman_material_override = mat
-        mat.use_nodes = True
+        if not mat.use_nodes:
+            mat.use_nodes = True
         nt = mat.node_tree
         shadergraph_utils.hide_cycles_nodes(mat)
 

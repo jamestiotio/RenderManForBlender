@@ -432,6 +432,15 @@ class NODE_OT_rman_node_create(bpy.types.Operator):
                 link_node(nt, newnode, socket)
             else:
                 bpy.ops.node.add_node(type=rman_node_name, use_transform=True)
+            if nt.id_data == context.scene.world.node_tree:
+                context.scene.world.update_tag()                
+            else:
+                active_material = find_material_from_nodetree(nt)
+                if active_material:
+                    try:
+                        newnode.update_mat(active_material)
+                    except:
+                        pass                
 
         # replace input node with a new one
         else:
@@ -443,12 +452,15 @@ class NODE_OT_rman_node_create(bpy.types.Operator):
                 old_node = input.links[0].from_node
                 link_node(nt, newnode, socket)
                 newnode.location = old_node.location
-            active_material = find_material_from_nodetree(nt)
-            if active_material:
-                try:
-                    newnode.update_mat(active_material)
-                except:
-                    pass
+            if nt.id_data == context.scene.world.node_tree:
+                context.scene.world.update_tag()                
+            else:                
+                active_material = find_material_from_nodetree(nt)
+                if active_material:
+                    try:
+                        newnode.update_mat(active_material)
+                    except:
+                        pass
             #nt.nodes.remove(old_node)
         return {'FINISHED'}
 
@@ -478,6 +490,15 @@ class NODE_OT_rman_node_connect_existing(bpy.types.Operator):
         if input_node is None:
             newnode.select = False
             link_node(nt, newnode, socket)
+            if nt.id_data == context.scene.world.node_tree:
+                context.scene.world.update_tag()
+            else:
+                active_material = find_material_from_nodetree(nt)
+                if active_material:
+                    try:
+                        newnode.update_mat(active_material)
+                    except:
+                        pass            
 
         # replace input node with a new one
         else:
