@@ -165,33 +165,6 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                 row = layout.row(align=True)
                 row.label(text="No Camera Selected")
 
-        layout.separator()
-        layout.label(text="Lights:")
-        box = layout.box()
-
-        box.menu('VIEW3D_MT_RM_Add_Light_Menu', text='Add Light', icon_value=bpy.types.VIEW3D_MT_RM_Add_Light_Menu.get_icon_id())
-        box.menu('VIEW3D_MT_RM_Add_LightFilter_Menu', text='Add Light Filter', icon_value=bpy.types.VIEW3D_MT_RM_Add_LightFilter_Menu.get_icon_id())               
-
-        # Editors
-        layout.separator()
-        layout.label(text="Editors:")
-        box = layout.box()
-        box.operator('scene.rman_open_light_mixer_editor', text='Light Mixer')
-        box.operator('scene.rman_open_light_linking', text='Light Linking')
-        box.operator('scene.rman_open_groups_editor', text='Trace Sets')
-        rman_vol_agg = rfb_icons.get_icon("rman_vol_aggregates")
-        box.operator('scene.rman_open_vol_aggregates_editor', text='Volume Aggregates', icon_value=rman_vol_agg.icon_id)
-
-        layout.separator()
-        layout.label(text="Apps:")
-        box = layout.box()
-        rman_it = rfb_icons.get_icon("rman_it")
-        box.operator("renderman.start_it", icon_value=rman_it.icon_id)  
-        rman_lq = rfb_icons.get_icon("rman_localqueue")
-        box.operator("renderman.start_localqueue", icon_value=rman_lq.icon_id)          
-        rman_lapp = rfb_icons.get_icon("rman_licenseapp")
-        box.operator("renderman.start_licenseapp", icon_value=rman_lapp.icon_id)        
-        
         selected_objects = []
         selected_light_objects = []
         if context.selected_objects:
@@ -223,6 +196,33 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
             # Create Archive node
             box.menu('VIEW3D_MT_RM_Add_Export_Menu', icon_value=bpy.types.VIEW3D_MT_RM_Add_Export_Menu.get_icon_id())
 
+        layout.separator()
+        layout.label(text="Lights:")
+        box = layout.box()
+
+        box.menu('VIEW3D_MT_RM_Add_Light_Menu', text='Add Light', icon_value=bpy.types.VIEW3D_MT_RM_Add_Light_Menu.get_icon_id())
+        box.menu('VIEW3D_MT_RM_Add_LightFilter_Menu', text='Add Light Filter', icon_value=bpy.types.VIEW3D_MT_RM_Add_LightFilter_Menu.get_icon_id())               
+
+        # Editors
+        layout.separator()
+        layout.label(text="Editors:")
+        box = layout.box()
+        box.operator('scene.rman_open_light_mixer_editor', text='Light Mixer')
+        box.operator('scene.rman_open_light_linking', text='Light Linking')
+        box.operator('scene.rman_open_groups_editor', text='Trace Sets')
+        rman_vol_agg = rfb_icons.get_icon("rman_vol_aggregates")
+        box.operator('scene.rman_open_vol_aggregates_editor', text='Volume Aggregates', icon_value=rman_vol_agg.icon_id)
+
+        layout.separator()
+        layout.label(text="Apps:")
+        box = layout.box()
+        rman_it = rfb_icons.get_icon("rman_it")
+        box.operator("renderman.start_it", icon_value=rman_it.icon_id)  
+        rman_lq = rfb_icons.get_icon("rman_localqueue")
+        box.operator("renderman.start_localqueue", icon_value=rman_lq.icon_id)          
+        rman_lapp = rfb_icons.get_icon("rman_licenseapp")
+        box.operator("renderman.start_licenseapp", icon_value=rman_lapp.icon_id)        
+        
         # Diagnose
         layout.separator()
         layout.label(text='Diagnose:')

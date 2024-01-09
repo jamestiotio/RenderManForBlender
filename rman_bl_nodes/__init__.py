@@ -252,6 +252,7 @@ def class_generate_properties(node, parent_name, node_desc):
                         default = page_name_label == 'Diffuse'
                         enable_param_prop = BoolProperty(name="Enable " + page_name_label,
                                             default=bool(default),
+                                            description="Enable " + page_name_label,
                                             update=update_func_with_inputs)
                         node.__annotations__[enable_param_name] = enable_param_prop        
                         page_prop_names = getattr(node, page_name)   

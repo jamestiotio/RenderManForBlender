@@ -8,7 +8,8 @@ from ..rman_constants import (
     RMAN_STYLIZED_PATTERNS, 
     RMAN_UTILITY_PATTERN_NAMES, 
     RFB_FLOAT3,
-    BLENDER_41
+    BLENDER_41,
+    RFB_LAMA_NODES
 )
 import math
 import bpy
@@ -943,16 +944,34 @@ def create_bxdf(bxdf):
     hide_cycles_nodes(mat)    
 
     output = nt.nodes.new('RendermanOutputNode')
-    default = nt.nodes.new('%sBxdfNode' % bxdf)
-    default.location = output.location
-    default.location[0] -= 300
-    nt.links.new(default.outputs[0], output.inputs[0])
-    output.inputs[1].hide = True
-    output.inputs[3].hide = True  
-    default.update_mat(mat)    
 
-    if bxdf == 'PxrLayerSurface':
-        create_pxrlayer_nodes(nt, default)   
+    if bxdf in RFB_LAMA_NODES:
+        # This is a LaMa node. Automatically create
+        # a LamaSurface node.
+        srf = nt.nodes.new('LamaSurfaceBxdfNode')
+        srf.location = srf.location
+        srf.location[0] -= 300
+        nt.links.new(srf.outputs[0], output.inputs[0])
+        output.inputs[1].hide = True
+        output.inputs[3].hide = True
+
+        lama_node = nt.nodes.new('%sBxdfNode' % bxdf)
+        lama_node.location = srf.location
+        lama_node.location[0] -= 300
+
+        nt.links.new(lama_node.outputs[0], srf.inputs['materialFront'])
+        lama_node.update_mat(mat)
+    else:
+        default = nt.nodes.new('%sBxdfNode' % bxdf)
+        default.location = output.location
+        default.location[0] -= 300
+        nt.links.new(default.outputs[0], output.inputs[0])
+        output.inputs[1].hide = True
+        output.inputs[3].hide = True  
+        default.update_mat(mat)    
+
+        if bxdf == 'PxrLayerSurface':
+            create_pxrlayer_nodes(nt, default)   
 
     return mat 
 

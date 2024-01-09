@@ -216,6 +216,25 @@ RMAN_BL_NODE_DESCRIPTIONS = {
 
 }
 
+# LaMa nodes that need a LamaSurface
+RFB_LAMA_NODES = [
+    'LamaAdd', 
+    'LamaConductor', 
+    'LamaDielectric', 
+    'LamaDiffuse', 
+    'LamaEmission', 
+    'LamaGeneralizedSchlick', 
+    'LamaHairChiang', 
+    'LamaIridescence', 
+    'LamaLPE', 
+    'LamaLayer', 
+    'LamaMix', 
+    'LamaSSS', 
+    'LamaSheen',
+    'LamaTranslucent', 
+    'LamaTricolorSSS'
+]
+
 '''
 Dictionary that contains restrictions on shader connections
 ex: LamaSurface should not be an input to LamaMix
