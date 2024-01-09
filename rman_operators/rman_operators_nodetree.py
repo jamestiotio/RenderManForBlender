@@ -817,16 +817,16 @@ class PRMAN_MT_Select_Nodetree_Downstream(bpy.types.Menu):
         layout = self.layout
         node = context.node
         any_connections = False
-        seen_nodes = list()
+
         for socket in node.outputs:
             if socket.is_linked:
                 any_connections = True
-                to_node = socket.links[0].to_node
-                if to_node not in seen_nodes:
-                    seen_nodes.append(to_node)                
-                    layout.context_pointer_set("node", to_node)
-                    layout.operator_context = 'EXEC_DEFAULT'
-                    op = layout.operator('node.rman_select_nodetree_node', text="%s (%s)" % (to_node.name, to_node.bl_label))
+                link = socket.links[0]
+                to_node = link.to_node
+            
+                layout.context_pointer_set("node", to_node)
+                layout.operator_context = 'EXEC_DEFAULT'
+                op = layout.operator('node.rman_select_nodetree_node', text="%s (%s -> %s)" % (to_node.name, link.from_socket.name, link.to_socket.name))
         if not any_connections:
             layout.label(text="No Nodes")
 
@@ -843,16 +843,16 @@ class PRMAN_MT_Select_Nodetree_Upstream(bpy.types.Menu):
         layout = self.layout
         node = context.node
         any_connections = False
-        seen_nodes = list()
+
         for socket in node.inputs:
             if socket.is_linked:
                 any_connections = True
-                from_node = socket.links[0].from_node
-                if from_node not in seen_nodes:
-                    seen_nodes.append(from_node)
-                    layout.context_pointer_set("node", from_node)
-                    layout.operator_context = 'EXEC_DEFAULT'
-                    op = layout.operator('node.rman_select_nodetree_node', text="%s (%s)" % (from_node.name, from_node.bl_label))
+                link = socket.links[0]
+                from_node = link.from_node
+
+                layout.context_pointer_set("node", from_node)
+                layout.operator_context = 'EXEC_DEFAULT'
+                op = layout.operator('node.rman_select_nodetree_node', text="%s (%s -> %s)" % (from_node.name, link.from_socket.name, link.to_socket.name))
         if not any_connections:
             layout.label(text="No Nodes")            
 
