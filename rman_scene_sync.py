@@ -1012,10 +1012,14 @@ class RmanSceneSync(object):
                 self.rman_scene.get_root_sg_node().RemoveCoordinateSystem(rman_sg_node.sg_node)
                 for o in rman_sg_node.lights_list:
                     if o:
-                        if hasattr(o, 'rman_nodetree'):
-                            o.rman_nodetree.update_tag()
-                        elif hasattr(o.data, 'node_tree'):
-                            o.data.node_tree.update_tag()    
+                        try:
+                            if hasattr(o, 'rman_nodetree'):
+                                o.rman_nodetree.update_tag()
+                            elif hasattr(o.data, 'node_tree'):
+                                o.data.node_tree.update_tag()    
+                        except ReferenceError:
+                            # light was already removed
+                            pass
             
             
         if self.rman_scene.render_default_light:
