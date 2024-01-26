@@ -31,6 +31,7 @@
             "default": "prman",
             "widget": "popup",
             "options": "RIS:prman|XPU:xpu",
+            "bl_prop_options": "",
             "help": "",
             "conditionalLockOps": {
                 "conditionalVis1Path": "has_xpu_license",
@@ -51,6 +52,7 @@
             "label": "Render to",
             "type": "string",
             "default": "blender",
+            "bl_prop_options": "",
             "widget": "mapper",
             "options": "Blender:blender|it:it",    
             "help": "Controls where preview renders will go to."
@@ -63,6 +65,7 @@
             "type": "int",
             "default": 0,
             "widget": "checkbox",
+            "bl_prop_options": "",
             "help": "Denoise Blender render displays with OptiX denoiser",
             "update_function_name": "update_blender_optix_denoiser",
             "update_function": "def update_blender_optix_denoiser(self, context):\n    from ..rman_render import RmanRender\n    rr = RmanRender.get_rman_render()\n    rr.rman_scene_sync.update_displays(context)",
@@ -121,6 +124,7 @@
             "default": 0,
             "help": "Select which denoiser to use to denoise IPR renders. Optix requires an Nvidia GPU. Note, the Optix denoiser is built-in into 'it', so selecting Optix here will not do anything when rendering to 'it'.",
             "widget": "mapper",
+            "bl_prop_options": "",
             "options": "None:0|RenderMan Denoiser:1|Optix:2"
         },   
         {
@@ -131,6 +135,7 @@
             "type": "int",
             "default": 0,
             "widget": "checkbox",
+            "bl_prop_options": "",
             "help": "If checked, the first denoise pass will use a cheaper (slightly faster but lower quality) heuristic. This can be useful if rendering something that is converging very quickly and you want to prioritize getting a denoised result faster.",
             "update_function_name": "update_blender_ipr_aidenoiser_cheapFirstPass",
             "update_function": "def update_blender_ipr_aidenoiser_cheapFirstPass(self, context):\n    from ..rfb_utils.envconfig_utils import envconfig\n    envconfig().set_qn_env_vars(context.scene)"
@@ -142,6 +147,7 @@
             "label": "Min Samples",
             "type": "int",
             "default": 2,
+            "bl_prop_options": "",
             "help": "The minimum number of average samples per bucket before interactive denoising runs for the first time. Changing this preference requires a render restart to be respected",
             "update_function_name": "update_blender_ipr_aidenoiser_minSamples",
             "update_function": "def update_blender_ipr_aidenoiser_minSamples(self, context):\n    from ..rfb_utils.envconfig_utils import envconfig\n    envconfig().set_qn_env_vars(context.scene)"            
@@ -153,6 +159,7 @@
             "label": "Interval",
             "type": "int",
             "default": 4,
+            "bl_prop_options": "",
             "help": "The time interval between denoising runs (in seconds).",
             "update_function_name": "update_blender_ipr_aidenoiser_interval",
             "update_function": "def update_blender_ipr_aidenoiser_interval(self, context):\n    from ..rfb_utils.envconfig_utils import envconfig\n    envconfig().set_qn_env_vars(context.scene)"            
@@ -165,6 +172,7 @@
             "type": "int",
             "default": 0,
             "widget": "checkbox",
+            "bl_prop_options": "",
             "update_function_name": "update_render_rman_stylized",
             "update_function": "def update_render_rman_stylized(self, context):\n    from ..rman_render import RmanRender\n    rr = RmanRender.get_rman_render()\n    rr.rman_scene_sync.update_displays(context)\n    context.scene.world.update_tag()",
             "help": "Render with RenderMan Stylized looks. Note, this simply adds the necessary AOVs to render with stylized looks. Both the stylized display filters need to be added to the scene, and a stylized pattern node needs to be added to an objects's material network."
@@ -187,6 +195,7 @@
             "type": "string",
             "default": "OFF",
             "widget": "mapper",
+            "bl_prop_options": "",
             "options": "Off:OFF|In Alpha:ALPHA|Separate AOV:AOV",    
             "help": "Render a holdout matte."
         },      
@@ -198,6 +207,7 @@
             "type": "int",
             "default": 0,
             "widget": "checkbox",
+            "bl_prop_options": "",
             "help": "Keep render data around for faster animation renders, at the cost of increased memory usage. May not work in all cases.",
             "ipr_editable": false,
             "update_function_name": "update_do_persistent_data",
@@ -1473,6 +1483,7 @@
             "type": "string",
             "default": "batch",
             "widget": "mapper",
+            "bl_prop_options": "",
             "options": "Blender Batch:batch|RIB:rib",
             "help": "Batch render style. Blender Batch will use blender in the background to render frames. RIB style will write out RIB files for each frame and then render."
         },          
@@ -1484,6 +1495,7 @@
             "type": "string",
             "default": "lq",
             "widget": "mapper",
+            "bl_prop_options": "",
             "options": "LocalQueue:lq|Tractor:tractor|None:none",
             "help": "System to spool to. None will generate RIB files, but not spool a render."
         },      
@@ -1495,6 +1507,7 @@
             "type": "int",
             "default": 1,
             "min": 1,
+            "bl_prop_options": "",
             "help": "Frame chunking. Determines how many frames each Blender batch task will render.",
             "conditionalVisOps": {
                 "conditionalVisOp": "equalTo",
@@ -1510,6 +1523,7 @@
             "type": "int",
             "default": 1,
             "widget": "checkbox",
+            "bl_prop_options": "",
             "help": "Only applies to Blender Batch. When enabled, all of the RenderMan Display settings are ignored, and one final image from the Blender compositor is written out. When using RIB, the Blender compositor cannot be used.",
             "conditionalVisOps": {
                 "conditionalVisOp": "equalTo",
@@ -1525,6 +1539,7 @@
             "type": "int",
             "default": 0,
             "widget": "checkbox",
+            "bl_prop_options": "",
             "help": "Only applies to Blender Batch. If on, and Use Blender Compositor is also turned on, all AOVs will be written out as OpenEXR files.",
             "conditionalVisOps": {
                 "conditionalVis1Path": "spool_style",
@@ -1545,6 +1560,7 @@
             "label": "Enable Recovery",
             "type": "int",
             "default": 0,
+            "bl_prop_options": "",
             "widget": "checkbox",
             "help": "Attempt to resume render from a previous checkpoint (if possible). This is only avaliable for RIB renders.",
             "conditionalVisOps": {
@@ -1561,6 +1577,7 @@
             "type": "string",
             "default": "binary",
             "widget": "mapper",
+            "bl_prop_options": "",
             "options": "ASCII:ASCII|Binary:binary",
             "help": ""
         },  
@@ -1572,6 +1589,7 @@
             "type": "string",
             "default": "none",
             "widget": "mapper",
+            "bl_prop_options": "",
             "options": "None:none|GZip:gzip",
             "help": ""
         },
@@ -1582,6 +1600,7 @@
             "label": "Custom Render Commands",
             "type": "string",
             "default": "",
+            "bl_prop_options": "",
             "help": "Inserts a string of custom command arguments into the render process"                   
         },    
         {
@@ -1590,6 +1609,7 @@
             "name": "ai_denoiser_asymmetry",
             "label": "Asymmetry",
             "type": "float",
+            "bl_prop_options": "",
             "default": 0.0,
             "min": 0.0,
             "max": 2.0,
@@ -1603,6 +1623,7 @@
             "type": "string",
             "widget": "dirinput",
             "default": "",
+            "bl_prop_options": "",
             "help": "The output directory for the denoised images. If not set, we put the images into a subfolder 'denoised' relative to the input images."             
         },        
         {
@@ -1613,6 +1634,7 @@
             "type": "string",
             "default": "singleframe",
             "widget": "mapper",
+            "bl_prop_options": "",
             "options": "Single Frame:singleframe|Cross Frame:crossframe",
             "help": "Use single frame or cross frame. Cross frame requires at least 7 frames."
         },              
@@ -1622,6 +1644,7 @@
             "name": "ai_denoiser_flow",
             "label": "Flow",
             "type": "int",
+            "bl_prop_options": "",
             "default": 1,
             "widget": "checkbox",
             "help": "Whether to compute optical flow."
@@ -1633,6 +1656,7 @@
             "label": "Verbose",
             "type": "int",
             "default": 0,
+            "bl_prop_options": "",
             "widget": "checkbox",
             "help": "Enable versbose output."
         },
@@ -1642,6 +1666,7 @@
             "name": "ai_denoiser_remap_diffuse",
             "label": "Remap Diffuse",
             "type": "string",
+            "bl_prop_options": "",
             "default": "",
             "help": "Consider the following comma-separate list of channels as diffuse outputs. Note, we assume channels named 'subsurface' and 'subsurfaceLobe' are part of the diffuse output."
         },        
@@ -1651,6 +1676,7 @@
             "name": "ai_denoiser_remap_specular",
             "label": "Remap Specular",
             "type": "string",
+            "bl_prop_options": "",
             "default": "",
             "help": "Consider the following comma-separate list of channels as specular outputs. Note, we assume channels named 'transmissiveSingleScatterLobe' and 'transmissiveGlassLobe' are part of the specular output."
         },
@@ -1660,6 +1686,7 @@
             "name": "ai_denoiser_remap_albedo",
             "label": "Remap Albedo",
             "type": "string",
+            "bl_prop_options": "",
             "default": "",
             "help": "Consider the following comma-separate list of channels as albedo outputs."
         },  
@@ -1669,6 +1696,7 @@
             "name": "ai_denoiser_remap_irradiance",
             "label": "Remap Irradiance",
             "type": "string",
+            "bl_prop_options": "",
             "default": "",
             "help": "Consider the following comma-separate list of channels as irradiance outputs."
         },
@@ -1678,6 +1706,7 @@
             "name": "ai_denoiser_remap_alpha",
             "label": "Remap Alpha",
             "type": "string",
+            "bl_prop_options": "",
             "default": "",
             "help": "Consider the following comma-separate list of channels as alpha outputs."
         }

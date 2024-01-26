@@ -224,7 +224,10 @@ def generate_array_property(node, prop_names, prop_meta, node_desc_param, update
     return True  
 
 def generate_property(node, sp, update_function=None, set_function=None, get_function=None):
-    options = {'ANIMATABLE'}
+    options = set()
+    if sp.bl_prop_options != '':
+        for op in sp.bl_prop_options.split(','):
+            options.add(op)
     param_name = sp._name
     renderman_name = param_name
     param_widget = sp.widget.lower() if hasattr(sp,'widget') and sp.widget else 'default'
@@ -345,12 +348,14 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                                        description=param_help,
                                        set=set_function,
                                        get=get_function,
+                                       options=options,
                                        update=update_function)       
         else:
             if param_widget in ['checkbox', 'switch']:
                 
                 prop = BoolProperty(name=param_label,
                                     default=bool(param_default),
+                                    options=options,
                                     description=param_help, set=set_function, get=get_function, update=update_function)
             elif param_widget == 'mapper':
                 items = []
@@ -376,6 +381,7 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                     prop = EnumProperty(name=param_label,
                                         items=items,
                                         default=bl_default,
+                                        options=options,
                                         description=param_help, set=set_function, get=get_function, update=update_function)
                 else:
                     param_min = sp.min if hasattr(sp, 'min') else (-1.0 * sys.float_info.max)
@@ -387,6 +393,7 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                                         default=param_default, precision=prop_precision,
                                         soft_min=param_min, soft_max=param_max,
                                         step=prop_stepsize,
+                                        options=options,
                                         description=param_help, set=set_function, get=get_function, update=update_function)
 
             else:
@@ -399,6 +406,7 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                                      default=param_default, precision=prop_precision,
                                      soft_min=param_min, soft_max=param_max,
                                      step=prop_stepsize,
+                                     options=options,
                                      description=param_help, set=set_function, get=get_function, update=update_function)
 
 
@@ -408,6 +416,7 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
         if sp.is_array(): 
             prop = IntProperty(name=param_label,
                                 default=0,
+                                options=options,
                                 description=param_help, set=set_function, get=get_function, update=update_function)            
         else:
             param_default = int(param_default) if param_default else 0
@@ -415,12 +424,14 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
             if param_widget in ['checkbox', 'switch']:
                 prop = BoolProperty(name=param_label,
                                     default=bool(param_default),
+                                    options=options,
                                     description=param_help, set=set_function, get=get_function, update=update_function)
 
             elif param_widget == 'displaymetadata':
                 from ..rman_bl_nodes.rman_bl_nodes_props import RendermanDspyMetaGroup
                 prop = CollectionProperty(name="Meta Data",
-                                    type=RendermanDspyMetaGroup,                                   
+                                    type=RendermanDspyMetaGroup,
+                                    options=options,
                                     description=param_help)
 
                 dspy_meta_index = '%s_index' % param_name
@@ -456,6 +467,7 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                     prop = EnumProperty(name=param_label,
                                         items=items,
                                         default=bl_default,
+                                        options=options,
                                         description=param_help, set=set_function, get=get_function, update=update_function)
                 else:
                     param_min = int(sp.min) if hasattr(sp, 'min') else 0
@@ -465,6 +477,7 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                                     default=param_default,
                                     soft_min=param_min,
                                     soft_max=param_max,
+                                    options=options,
                                     description=param_help, set=set_function, get=get_function, update=update_function)
 
             else:
@@ -475,6 +488,7 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                                    default=param_default,
                                    soft_min=param_min,
                                    soft_max=param_max,
+                                   options=options,
                                    description=param_help, set=set_function, get=get_function, update=update_function)
         renderman_type = 'int'
 
@@ -484,6 +498,7 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                                     default=(1.0, 1.0, 1.0), size=3,
                                     subtype="COLOR",
                                     soft_min=0.0, soft_max=1.0,
+                                    options=options,
                                     description=param_help, set=set_function, get=get_function, update=update_function)
         else:
             if param_default == 'null' or param_default is None:
@@ -492,12 +507,14 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                                     default=param_default, size=3,
                                     subtype="COLOR",
                                     soft_min=0.0, soft_max=1.0,
+                                    options=options,
                                     description=param_help, set=set_function, get=get_function, update=update_function)
         renderman_type = 'color'
     elif param_type == 'shader':
         param_default = ''
         prop = StringProperty(name=param_label,
                               default=param_default,
+                              options=options,
                               description=param_help, set=set_function, get=get_function, update=update_function)
         renderman_type = 'string'
     elif param_type in ['string', 'struct', 'vstruct', 'bxdf']:
@@ -530,6 +547,7 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
         elif param_widget == 'dirinput':
             prop = StringProperty(name=param_label,
                                   default=param_default, subtype="DIR_PATH",
+                                  options=options,
                                   description=param_help)            
 
         elif param_widget in ['mapper', 'popup']:
@@ -539,12 +557,14 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
             reference_type = eval(sp.options['nodeType'])
             prop = PointerProperty(name=param_label, 
                         description=param_help,
+                        options=options,
                         type=reference_type)      
         elif param_widget == 'null' and hasattr(sp, 'options'):
             prop = generate_string_enum(sp, param_label, param_default, param_help, set_function, get_function, update_function)
         else:
             prop = StringProperty(name=param_label,
                                 default=str(param_default),
+                                options=options,
                                 description=param_help, set=set_function, get=get_function, update=update_function)            
         renderman_type = param_type
 
@@ -555,6 +575,7 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                                    default=param_default, size=3,
                                    subtype="NONE",
                                    precision=prop_precision,
+                                   options=options,
                                    description=param_help, set=set_function, get=get_function, update=update_function)
         renderman_type = param_type
     elif param_type == 'point':
@@ -564,6 +585,7 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                                    default=param_default, size=3,
                                    precision=prop_precision,
                                    subtype="XYZ",
+                                   options=options,
                                    description=param_help, set=set_function, get=get_function, update=update_function)
         renderman_type = param_type
     elif param_type == 'int2':
@@ -599,10 +621,12 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                 prop = EnumProperty(name=param_label,
                                     items=items,
                                     default=bl_default,
+                                    options=options,
                                     description=param_help, set=set_function, update=update_function)
         else:        
             prop = IntVectorProperty(name=param_label,
                                     default=param_default, size=2,
+                                    options=options,
                                     description=param_help, set=set_function, update=update_function)
         renderman_type = 'int'
         prop_meta['arraySize'] = 2   
@@ -640,12 +664,14 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                 prop = EnumProperty(name=param_label,
                                     items=items,
                                     default=bl_default,
+                                    options=options,
                                     description=param_help, set=set_function, update=update_function)
         else:        
             prop = FloatVectorProperty(name=param_label,
                                     default=param_default, size=2,
                                     step=prop_stepsize,
                                     precision=prop_precision,
+                                    options=options,
                                     description=param_help, set=set_function, update=update_function)
         renderman_type = 'float'
         prop_meta['arraySize'] = 2      

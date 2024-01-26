@@ -14,7 +14,7 @@ NodeDescParamJSON.keywords = NodeDescParamJSON.keywords + ['panel', 'inheritable
                 'set_function_name', 'set_function',
                 'get_function_name', 'get_function',
                 'readOnly', 'always_write', 'ipr_editable', 'hideInput',
-                'uiStruct']  
+                'uiStruct', 'bl_prop_options']  
 
 def blender_finalize(obj):
     """Post-process some parameters for Blender.
@@ -32,6 +32,10 @@ def blender_finalize(obj):
         obj.has_ui_struct = True
     else:
         obj.has_ui_Struct = False
+
+    if not hasattr(obj, 'bl_prop_options'):
+        # default to ANIMATABLE
+        setattr(obj, 'bl_prop_options', 'ANIMATABLE')
 
 class RfbNodeDescParamXML(NodeDescParamXML):
     """Specialize NodeDescParamXML for Blender"""
