@@ -1612,7 +1612,7 @@ def draw_barn_light_filter(ob, light_shader, light_shader_name):
     pts = [m @ Vector(pt) for pt in vtx_buffer ]
     indices = _BARN_LIGHT_DRAW_HELPER_.idx_buffer(len(pts), 0, 0)
     # blender wants a list of lists
-    indices = [indices[i:i+2] for i in range(0, len(indices), 2)]
+    indices = [indices[i:i+2] for i in range(0, len(indices), 2) if indices[i] is not None]
 
     draw_line_shape(ob, _SHADER_, pts, indices)
 
