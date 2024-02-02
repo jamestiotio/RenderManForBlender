@@ -220,33 +220,33 @@ class RmanSceneSync(object):
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
             remove_items = []            
             for light_ob in rman_sg_lightfilter.lights_list:
-                is_mesh_light = shadergraph_utils.is_mesh_light(light_ob)
-                try:                    
+                try:
+                    is_mesh_light = shadergraph_utils.is_mesh_light(light_ob)                 
                     if light_ob.name not in bpy.data.objects:
                         remove_items.append(light_ob)
                         continue
+                    child = None
+                    if is_mesh_light:       
+                        if light_ob.original not in self.rman_updates:
+                            rman_update = RmanUpdate()
+                            rman_update.is_updated_geometry = True
+                            rman_update.is_updated_transform = True
+                            self.rman_updates[light_ob.original] = rman_update 
+                    else:
+                        proto_key = object_utils.prototype_key(light_ob)
+                        rman_sg_light = self.rman_scene.get_rman_prototype(proto_key)
+                        # try to look for the lightfilter transform group
+                        for i in range(rman_sg_light.sg_node.GetNumChildren()):
+                            c = rman_sg_light.sg_node.GetChild(i)
+                            if c.GetIdentifier().CStr() == rman_sg_lightfilter.db_name:
+                                child = c
+                                break
+                        
+                    if child:
+                        translator.update_transform(ob, light_ob, c)
                 except ReferenceError:
                     remove_items.append(light_ob)
-                    continue
-                child = None
-                if is_mesh_light:       
-                    if light_ob.original not in self.rman_updates:
-                        rman_update = RmanUpdate()
-                        rman_update.is_updated_geometry = True
-                        rman_update.is_updated_transform = True
-                        self.rman_updates[light_ob.original] = rman_update 
-                else:
-                    proto_key = object_utils.prototype_key(light_ob)
-                    rman_sg_light = self.rman_scene.get_rman_prototype(proto_key)
-                    # try to look for the lightfilter transform group
-                    for i in range(rman_sg_light.sg_node.GetNumChildren()):
-                        c = rman_sg_light.sg_node.GetChild(i)
-                        if c.GetIdentifier().CStr() == rman_sg_lightfilter.db_name:
-                            child = c
-                            break
-                    
-                if child:
-                    translator.update_transform(ob, light_ob, c)
+                    continue                        
             for item in remove_items:
                 rman_sg_lightfilter.lights_list.remove(item)                  
 
@@ -280,22 +280,22 @@ class RmanSceneSync(object):
                 self.rman_scene.rman_translators['LIGHTFILTER'].update(ob, rman_sg_lightfilter)
                 remove_items = []
                 for light_ob in rman_sg_lightfilter.lights_list:
-                    is_mesh_light = shadergraph_utils.is_mesh_light(light_ob)
-                    try:
+                    try:                    
+                        is_mesh_light = shadergraph_utils.is_mesh_light(light_ob)
                         if light_ob.name not in bpy.data.objects:
                             remove_items.append(light_ob)
-                            continue
+                            continue      
+                        if is_mesh_light:
+                            mat = object_utils.get_active_material(light_ob)
+                            self.material_updated(mat)
+                        elif light_ob.original not in self.rman_updates:
+                            rman_update = RmanUpdate()
+                            rman_update.is_updated_geometry = True
+                            rman_update.is_updated_transform = True
+                            self.rman_updates[light_ob.original] = rman_update   
                     except ReferenceError:
                         remove_items.append(light_ob)
-                        continue             
-                    if is_mesh_light:
-                        mat = object_utils.get_active_material(light_ob)
-                        self.material_updated(mat)
-                    elif light_ob.original not in self.rman_updates:
-                        rman_update = RmanUpdate()
-                        rman_update.is_updated_geometry = True
-                        rman_update.is_updated_transform = True
-                        self.rman_updates[light_ob.original] = rman_update        
+                        continue                              
 
                 for item in remove_items:
                     rman_sg_lightfilter.light_lights.remove(item)                
