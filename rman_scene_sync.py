@@ -151,7 +151,16 @@ class RmanSceneSync(object):
                         rman_sg_node = self.rman_scene.get_rman_prototype(object_utils.prototype_key(o), create=False)
                     if rman_sg_node and rman_sg_node.is_frame_sensitive:
                         if o.original not in self.rman_updates:
-                            o.original.update_tag()
+                            if o.type == 'CAMERA':
+                                o.original.update_tag()
+                            else:
+                                # manually create an RmanUpdate
+                                # calling update_tag() on a EMPTY doesn't seem to trigger
+                                # a updated_geometry update
+                                rman_update = RmanUpdate()
+                                rman_update.is_updated_geometry = True
+                                rman_update.is_updated_transform = False
+                                self.rman_updates[o.original] = rman_update 
                 elif isinstance(id, bpy.types.Material):
                     mat = id.original               
                     rman_sg_material = self.rman_scene.rman_materials.get(mat, None)

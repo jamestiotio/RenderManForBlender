@@ -51,9 +51,14 @@ class RendermanObjectSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         default=False
     )
 
+    def matrial_override_update(self, context):
+        if self.id_data:
+            self.id_data.update_tag()
+
     rman_material_override: PointerProperty(
         name='Material',
-        type=bpy.types.Material
+        type=bpy.types.Material,
+        update=matrial_override_update
     )    
 
     rman_lighting_excludesubset: CollectionProperty(
