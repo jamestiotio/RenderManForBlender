@@ -64,7 +64,7 @@ def draw_dsypmeta_item(layout, node, prop_name):
         layout.prop(item, 'type')
         layout.prop(item, 'value_%s' % item.type, slider=True)
 
-def draw_array_elem(layout, node, prop_name, bl_prop_info, nt, context, level):
+def draw_array_elem(layout, node, prop_name, bl_prop_info, nt, context, level, single_node_view=True):
     row = layout.row(align=True)
     row.enabled = not bl_prop_info.prop_disabled
 
@@ -126,24 +126,44 @@ def draw_array_elem(layout, node, prop_name, bl_prop_info, nt, context, level):
             socket = node.inputs.get(socket_name, None)
             if socket and socket.is_linked:
                 input_node = shadergraph_utils.socket_node_input(nt, socket)
-                icon = get_open_close_icon(socket.ui_open)
+                do_single_view = single_node_view and prefs_utils.single_node_view()
+                if do_single_view:
 
-                split = layout.split()
-                row = split.row()
-                draw_indented_label(row, None, level)
-                row.context_pointer_set("socket", socket)               
-                row.operator('node.rman_open_close_link', text='', icon=icon, emboss=False)                
-                rman_icon = rfb_icons.get_node_icon(input_node.bl_label)               
-                row.label(text='Value (%s):' % input_node.name)
+                    icon = get_open_close_icon(False)
+                    split = layout.split()
+                    row = split.row()
+                    draw_indented_label(row, None, level)  
+                    row.label(text='Value (%s):' % input_node.name)
+                    
+                    row.context_pointer_set("node", input_node)
+                    row.context_pointer_set("nodetree", nt)                                
+                    row.operator('node.rman_select_nodetree_node', text='', icon=icon)                
+                    rman_icon = rfb_icons.get_node_icon(input_node.bl_label)               
 
-                row.context_pointer_set("socket", socket)
-                row.context_pointer_set("node", node)
-                row.context_pointer_set("nodetree", nt)
-                row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
-                                        
-                if socket.ui_open:
-                    draw_node_properties_recursive(layout, context, nt,
-                                                    input_node, level=level + 1)
+
+                    row.context_pointer_set("socket", socket)
+                    row.context_pointer_set("node", node)
+                    row.context_pointer_set("nodetree", nt)
+                    row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
+                                            
+                else:
+                    icon = get_open_close_icon(socket.ui_open)
+                    split = layout.split()
+                    row = split.row()
+                    draw_indented_label(row, None, level)
+                    row.context_pointer_set("socket", socket)               
+                    row.operator('node.rman_open_close_link', text='', icon=icon, emboss=False)                
+                    rman_icon = rfb_icons.get_node_icon(input_node.bl_label)               
+                    row.label(text='Value (%s):' % input_node.name)
+
+                    row.context_pointer_set("socket", socket)
+                    row.context_pointer_set("node", node)
+                    row.context_pointer_set("nodetree", nt)
+                    row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
+                                            
+                    if socket.ui_open:
+                        draw_node_properties_recursive(layout, context, nt,
+                                                        input_node, level=level + 1)
 
                 return 
 
@@ -275,7 +295,7 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
             else:
                 row.enabled = is_enabled
 
-def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=False):
+def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=False, single_node_view=True):
     prop_meta = node.prop_meta[prop_name]
     bl_prop_info = BlPropInfo(node, prop_name, prop_meta)
     if bl_prop_info.prop is None:
@@ -303,7 +323,8 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
     layout.context_pointer_set("socket", bl_prop_info.socket)
     if bl_prop_info.is_linked:
         input_node = shadergraph_utils.socket_node_input(nt, bl_prop_info.socket)
-        if prefs_utils.single_node_view():
+        do_single_view = single_node_view and prefs_utils.single_node_view()
+        if do_single_view:
             icon = get_open_close_icon(False)
 
             split = layout.split()
@@ -347,7 +368,7 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
                                     
             if bl_prop_info.socket.ui_open:
                 draw_node_properties_recursive(layout, context, nt,
-                                                input_node, level=level + 1)
+                                                input_node, level=level + 1, single_node_view=single_node_view)
         return
 
     elif bl_prop_info.renderman_type == 'page':
@@ -383,11 +404,11 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
         row.label(text=page_label)
 
         if ui_open:
-            draw_props(node, sub_prop_names, layout, level=level + 1, nt=nt, context=context, draw_ui_structs=False)
+            draw_props(node, sub_prop_names, layout, level=level + 1, nt=nt, context=context, draw_ui_structs=False, single_node_view=single_node_view)
         return
 
     elif bl_prop_info.renderman_type == 'array':
-        draw_array_elem(layout, node, prop_name, bl_prop_info, nt, context, level)
+        draw_array_elem(layout, node, prop_name, bl_prop_info, nt, context, level, single_node_view=single_node_view)
         return
 
     elif bl_prop_info.widget == 'colorramp':
@@ -524,7 +545,7 @@ def draw_ui_struct(layout, node, prop_name, bl_prop_info, nt, context, level):
                 prop_name = '%s[%d]' % (nm, i)
                 draw_prop(node, prop_name, layout, level=level+1, nt=nt, context=context)
                 
-def draw_props(node, prop_names, layout, level=0, nt=None, context=None, draw_ui_structs=True):
+def draw_props(node, prop_names, layout, level=0, nt=None, context=None, draw_ui_structs=True, single_node_view=True):
     layout.context_pointer_set("node", node)
     if nt:
         layout.context_pointer_set("nodetree", nt)
@@ -546,7 +567,7 @@ def draw_props(node, prop_names, layout, level=0, nt=None, context=None, draw_ui
             continue
         if prop_name in ui_struct_members:
             continue
-        draw_prop(node, prop_name, layout, level=level, nt=nt, context=context)
+        draw_prop(node, prop_name, layout, level=level, nt=nt, context=context, single_node_view=single_node_view)
 
 def panel_node_draw(layout, context, id_data, output_type, input_name):
     ntree = id_data.node_tree
@@ -718,7 +739,7 @@ def show_node_match_params(layout, node, expr, match_on, prop_names, context, nt
             
     return label_drawn
 
-def draw_node_properties_recursive(layout, context, nt, node, level=0):
+def draw_node_properties_recursive(layout, context, nt, node, level=0, single_node_view=True):
 
     # if this is a cycles node do something different
     if not hasattr(node, 'plugin_name') or node.bl_idname == 'PxrOSLPatternNode':
@@ -744,8 +765,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
                 if input.show_expanded:
                     draw_node_properties_recursive(layout, context, nt,
-                                                   input_node, level=level + 1)
-
+                                                   input_node, level=level + 1, single_node_view=single_node_view)
             else:
                 row = layout.row(align=True)              
                 draw_indented_label(row, None, level)
@@ -763,5 +783,5 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 row.menu('NODE_MT_renderman_connection_menu', text='', icon='NODE_MATERIAL')
 
     else:
-        draw_props(node, node.prop_names, layout, level, nt=nt, context=context)
+        draw_props(node, node.prop_names, layout, level, nt=nt, context=context, single_node_view=single_node_view)
     layout.separator()
