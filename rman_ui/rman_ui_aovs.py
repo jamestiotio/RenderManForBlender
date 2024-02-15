@@ -71,8 +71,6 @@ class COLLECTION_OT_rman_dspy_add_remove(bpy.types.Operator):
                 collection.remove(index)
                 setattr(rm, coll_idx, index - 1)
 
-        update_displays_func(None, context)
-
         return {'FINISHED'}
 
 class PRMAN_OT_Renderman_layer_channel_set_light_group(Operator):
