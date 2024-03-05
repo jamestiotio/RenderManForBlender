@@ -26,7 +26,10 @@
 from ..rfb_utils.prefs_utils import get_pref, get_addon_prefs, using_qt
 from ..rfb_logger import rfb_log
 from ..rman_config import __RFB_CONFIG_DICT__ as rfb_config
-from ..rman_ui import rfb_qt
+try:
+    from ..rman_ui import rfb_qt
+except:
+    rfb_qt = None
 
 # for panel icon
 from .. import rfb_icons
@@ -49,37 +52,38 @@ import os
 
 __PRESET_BROWSER_WINDOW__ = None 
 
-class PresetBrowserQtAppTimed(rfb_qt.RfbBaseQtAppTimed):
-    bl_idname = "wm.rpb_qt_app_timed"
-    bl_label = "RenderManPreset Browser"
+if rfb_qt:
+    class PresetBrowserQtAppTimed(rfb_qt.RfbBaseQtAppTimed):
+        bl_idname = "wm.rpb_qt_app_timed"
+        bl_label = "RenderManPreset Browser"
 
-    def __init__(self):
-        super(PresetBrowserQtAppTimed, self).__init__()
+        def __init__(self):
+            super(PresetBrowserQtAppTimed, self).__init__()
 
-    def execute(self, context):
-        global __PRESET_BROWSER_WINDOW__
-        __PRESET_BROWSER_WINDOW__ = PresetBrowserWrapper()
-        self._window = __PRESET_BROWSER_WINDOW__
-        return super(PresetBrowserQtAppTimed, self).execute(context)
+        def execute(self, context):
+            global __PRESET_BROWSER_WINDOW__
+            __PRESET_BROWSER_WINDOW__ = PresetBrowserWrapper()
+            self._window = __PRESET_BROWSER_WINDOW__
+            return super(PresetBrowserQtAppTimed, self).execute(context)
 
-class PresetBrowserWrapper(rfb_qt.RmanQtWrapper):
+    class PresetBrowserWrapper(rfb_qt.RmanQtWrapper):
 
-    def __init__(self):
-        super(PresetBrowserWrapper, self).__init__()
-        # import here because we will crash Blender
-        # when we try to import it globally
-        import rman_utils.rman_assets.ui as rui    
+        def __init__(self):
+            super(PresetBrowserWrapper, self).__init__()
+            # import here because we will crash Blender
+            # when we try to import it globally
+            import rman_utils.rman_assets.ui as rui    
 
-        self.resize(1024, 1024)
-        self.setWindowTitle('RenderMan Preset Browser')
+            self.resize(1024, 1024)
+            self.setWindowTitle('RenderMan Preset Browser')
 
-        self.hostPrefs = bl_pb_core.get_host_prefs()
-        self.ui = rui.Ui(self.hostPrefs, parent=self)
-        self.setLayout(self.ui.topLayout)   
+            self.hostPrefs = bl_pb_core.get_host_prefs()
+            self.ui = rui.Ui(self.hostPrefs, parent=self)
+            self.setLayout(self.ui.topLayout)   
 
-    def closeEvent(self, event):
-        self.hostPrefs.saveAllPrefs()
-        event.accept()
+        def closeEvent(self, event):
+            self.hostPrefs.saveAllPrefs()
+            event.accept()
 
 
 # panel for the toolbar of node editor
@@ -525,9 +529,10 @@ classes = [
     RENDERMAN_UL_Presets_Categories_List,
     RENDERMAN_UL_Presets_Preset_List,
     PRMAN_OT_Renderman_Presets_Editor,
-    PresetBrowserQtAppTimed
 ]
 
+if rfb_qt:
+    classes.append(PresetBrowserQtAppTimed)
 
 def register():
     from ..rfb_utils import register_utils

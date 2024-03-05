@@ -524,7 +524,7 @@ class RendermanPreferences(AddonPreferences):
     rman_ui_framework: EnumProperty(
         name="UI Framework",
         default="QT",
-        description="Which UI framework to use. Qt is currently experimental and requires PySide2 to be installed. Changes to this requires a restart.",
+        description="Which UI framework to use. Changes to this requires a restart. NOTE: QT is currently not supported in Blender 4.1 and above.",
         items=[('NATIVE', 'Native', ''),
                 ("QT", "Qt", '')
             ]
