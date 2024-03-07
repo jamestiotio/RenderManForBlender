@@ -582,7 +582,8 @@ def panel_node_draw(layout, context, id_data, output_type, input_name):
     return True
 
 def draw_nodes_properties_ui(layout, context, nt, input_name='bxdf_in',
-                             output_node_type="output"):
+                             output_node_type="output",
+                             single_node_view=True):
     output_node = next((n for n in nt.nodes
                         if hasattr(n, 'renderman_node_type') and n.renderman_node_type == output_node_type), None)
     if output_node is None:
