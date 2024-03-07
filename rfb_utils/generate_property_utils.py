@@ -304,6 +304,30 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
     page_name = getattr(sp, 'page', '')
     prop_meta['page'] = page_name
 
+    param_min = None
+    param_max = None
+    slider_min = None
+    slider_max = None
+
+    if param_type in ["float", "float2"]:
+        param_min = sp.min if hasattr(sp, 'min') else (-1.0 * sys.float_info.max)
+        param_max = sp.max if hasattr(sp, 'max') else sys.float_info.max
+        slider_min = sp.slidermin if hasattr(sp, 'slidermin') else param_min
+        slider_max = sp.slidermax if hasattr(sp, 'slidermax') else param_max                  
+
+    elif param_type in ["int", "int2"]:
+        param_min = int(sp.min) if hasattr(sp, 'min') else 0
+        param_max = int(sp.max) if hasattr(sp, 'max') else 2 ** 31 - 1   
+        slider_min = int(sp.slidermin) if hasattr(sp, 'slidermin') else param_min
+        slider_max = int(sp.slidermax) if hasattr(sp, 'slidermax') else param_max      
+
+    # check if there's a slidermin/slidermax, but no min/max
+    if hasattr(sp, 'slidermin') and not hasattr(sp, 'min'):
+        param_min = slider_min          
+
+    if hasattr(sp, 'slidermax') and not hasattr(sp, 'max'):
+        param_max = slider_max                 
+
     if isinstance(update_function, str):
         lcls = locals()
         exec('update_func = %s' % update_function, globals(), lcls)
@@ -383,28 +407,24 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                                         default=bl_default,
                                         options=options,
                                         description=param_help, set=set_function, get=get_function, update=update_function)
-                else:
-                    param_min = sp.min if hasattr(sp, 'min') else (-1.0 * sys.float_info.max)
-                    param_max = sp.max if hasattr(sp, 'max') else sys.float_info.max
-                    param_min = sp.slidermin if hasattr(sp, 'slidermin') else param_min
-                    param_max = sp.slidermax if hasattr(sp, 'slidermax') else param_max   
-
+                else: 
                     prop = FloatProperty(name=param_label,
                                         default=param_default, precision=prop_precision,
-                                        soft_min=param_min, soft_max=param_max,
+                                        min = param_min,
+                                        max = param_max,
+                                        soft_min=param_min,
+                                        soft_max=param_max,
                                         step=prop_stepsize,
                                         options=options,
                                         description=param_help, set=set_function, get=get_function, update=update_function)
 
             else:
-                param_min = sp.min if hasattr(sp, 'min') else (-1.0 * sys.float_info.max)
-                param_max = sp.max if hasattr(sp, 'max') else sys.float_info.max
-                param_min = sp.slidermin if hasattr(sp, 'slidermin') else param_min
-                param_max = sp.slidermax if hasattr(sp, 'slidermax') else param_max   
-
                 prop = FloatProperty(name=param_label,
                                      default=param_default, precision=prop_precision,
-                                     soft_min=param_min, soft_max=param_max,
+                                     min = param_min,
+                                     max = param_max,
+                                     soft_min=param_min,
+                                     soft_max=param_max,
                                      step=prop_stepsize,
                                      options=options,
                                      description=param_help, set=set_function, get=get_function, update=update_function)
@@ -470,22 +490,20 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                                         options=options,
                                         description=param_help, set=set_function, get=get_function, update=update_function)
                 else:
-                    param_min = int(sp.min) if hasattr(sp, 'min') else 0
-                    param_max = int(sp.max) if hasattr(sp, 'max') else 2 ** 31 - 1
-
                     prop = IntProperty(name=param_label,
                                     default=param_default,
+                                    min = param_min,
+                                    max = param_max,
                                     soft_min=param_min,
                                     soft_max=param_max,
                                     options=options,
                                     description=param_help, set=set_function, get=get_function, update=update_function)
 
             else:
-                param_min = int(sp.min) if hasattr(sp, 'min') else 0
-                param_max = int(sp.max) if hasattr(sp, 'max') else 2 ** 31 - 1
-
                 prop = IntProperty(name=param_label,
                                    default=param_default,
+                                   min = param_min,
+                                   max = param_max,
                                    soft_min=param_min,
                                    soft_max=param_max,
                                    options=options,
@@ -626,6 +644,10 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
         else:        
             prop = IntVectorProperty(name=param_label,
                                     default=param_default, size=2,
+                                    min = param_min,
+                                    max = param_max,
+                                    soft_min=param_min,
+                                    soft_max=param_max,                                    
                                     options=options,
                                     description=param_help, set=set_function, update=update_function)
         renderman_type = 'int'
@@ -670,6 +692,10 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
             prop = FloatVectorProperty(name=param_label,
                                     default=param_default, size=2,
                                     step=prop_stepsize,
+                                    min = param_min,
+                                    max = param_max,
+                                    soft_min=param_min,
+                                    soft_max=param_max,                                    
                                     precision=prop_precision,
                                     options=options,
                                     description=param_help, set=set_function, update=update_function)
