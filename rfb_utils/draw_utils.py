@@ -600,7 +600,8 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='bxdf_in',
         split = layout.split(factor=0.35)
         split.label(text=socket.identifier + ':')
 
-        if prefs_utils.single_node_view():
+        do_single_view = single_node_view and prefs_utils.single_node_view()
+        if do_single_view:
             split.context_pointer_set("socket", socket)
             split.context_pointer_set("node", output_node)
             split.context_pointer_set("nodetree", nt)                 
