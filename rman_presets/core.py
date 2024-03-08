@@ -154,6 +154,9 @@ class BlenderHostPrefs(ral.HostPrefs):
         self.bl_world = None
         self.progress = BlenderProgress()
 
+        self.current_asset = None
+        self.import_displayfilters = False
+
     def getHostPref(self, prefName, defaultValue): # pylint: disable=unused-argument
         if prefName == 'rpbUserLibraries':
             val = list()
@@ -969,7 +972,7 @@ def setParams(Asset, node, paramsList):
             # always set the array length
 
             # try to get array length
-            rman_type = ptype.split('[')[0]
+            rman_type = ptype.split('[')[0].strip()
             array_len = ptype.split('[')[1].split(']')[0]
             if array_len == '':
                 continue
@@ -1397,12 +1400,17 @@ def create_displayfilter_nodes(Asset):
             has_stylized = True
 
 def import_asset(Asset, assignToSelected):
+    hostPrefs = get_host_prefs()
+    hostPrefs.current_asset = Asset
+
     assetType = Asset.type()
 
     if assetType == "nodeGraph":
         mat = None
         if Asset.displayFilterList():
-            create_displayfilter_nodes(Asset)
+            bpy.ops.renderman.rman_import_displayfilters_dlg('EXEC_DEFAULT')
+            if hostPrefs.import_displayfilters:
+                create_displayfilter_nodes(Asset)
         if Asset.nodeList():
             path = os.path.dirname(Asset.path())
             paths = path.split('/')

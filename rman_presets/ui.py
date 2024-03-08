@@ -53,6 +53,7 @@ import os
 __PRESET_BROWSER_WINDOW__ = None 
 
 if rfb_qt:
+    from PySide2 import QtWidgets 
     class PresetBrowserQtAppTimed(rfb_qt.RfbBaseQtAppTimed):
         bl_idname = "wm.rpb_qt_app_timed"
         bl_label = "RenderManPreset Browser"
@@ -84,6 +85,22 @@ if rfb_qt:
         def closeEvent(self, event):
             self.hostPrefs.saveAllPrefs()
             event.accept()
+
+    class PRMAN_OT_Renderman_PB_ImportDisplayFilters_Dlg(bpy.types.Operator):
+
+        bl_idname = "renderman.rman_import_displayfilters_dlg"
+        bl_label = ""
+        bl_description = ""
+        bl_options = {'INTERNAL'}
+
+        def execute(self, context):
+            button = QtWidgets.QMessageBox.question(None, "Restore displayFilters?", "Do you want to add this preset's displayFilters to your scene ?")
+            hostPrefs = rab.get_host_prefs()
+            if button == QtWidgets.QMessageBox.Yes:
+                hostPrefs.import_displayfilters = True
+            else:
+                hostPrefs.import_displayfilters = False                
+            return {'FINISHED'}                    
 
 
 # panel for the toolbar of node editor
@@ -533,6 +550,7 @@ classes = [
 
 if rfb_qt:
     classes.append(PresetBrowserQtAppTimed)
+    classes.append(PRMAN_OT_Renderman_PB_ImportDisplayFilters_Dlg)
 
 def register():
     from ..rfb_utils import register_utils
