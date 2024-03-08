@@ -200,6 +200,7 @@ class PRMAN_OT_load_asset_to_scene(bpy.types.Operator):
         from . import rmanAssetsBlender
 
         hostPrefs = rab.get_host_prefs()
+        hostPrefs.import_displayfilters = self.properties.import_displayfilters
         mat = rmanAssetsBlender.bl_import_asset(hostPrefs.current_asset)
         if self.properties.assign and mat and type(mat) == bpy.types.Material:
             for ob in context.selected_objects:
