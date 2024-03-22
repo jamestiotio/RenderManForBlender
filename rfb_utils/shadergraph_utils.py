@@ -33,6 +33,25 @@ class RmanConvertNode:
         if type(other) != RmanConvertNode:
             return False
         return (self.node_type == other.node_type and self.from_node == other.from_node and self.from_socket == other.from_socket and self.to_node == other.to_node and self.to_socket == other.to_socket)
+    
+def find_blimage_nodes(nt):
+    '''
+    Find all selected Blender/Cycles image nodes in a given node tree.
+
+    Args:
+    nt (bpy.types.NodeTree) - Node tree to search
+
+    Returns:
+    (list) - a list of ShaderNodeTexImage nodes.
+
+    '''
+    nodes = []
+    for n in nt.nodes:
+        node_type = n.bl_idname
+        if n.select and node_type == 'ShaderNodeTexImage':
+            nodes.append(n)
+
+    return nodes
 
 def is_renderman_nodetree(material):
     return find_node(material, 'RendermanOutputNode')

@@ -855,6 +855,40 @@ class PRMAN_MT_Select_Nodetree_Upstream(bpy.types.Menu):
                 op = layout.operator('node.rman_select_nodetree_node', text="%s (%s -> %s)" % (from_node.name, link.from_socket.name, link.to_socket.name))
         if not any_connections:
             layout.label(text="No Nodes")            
+class PRMAN_OT_Convert_BlImage_Nodes(bpy.types.Operator):
+    bl_idname = "node.convert_blimage_nodes"
+    bl_label = "Convert Image Nodes"
+    bl_description = "Convert all selected Blender Image Nodes to PxrTexture. Note, we do not convert any upstream nodes that are connected to the image node's Vector input socket."
+    bl_options = {"INTERNAL"}
+
+    def execute(self, context):
+        from ..rman_bl_nodes import __BL_NODES_MAP__
+        from ..rman_cycles_convert import cycles_convert
+
+        node = context.node
+        mat = context.mat
+        nt = getattr(context, 'nodetree', node.id_data)
+        nodes = shadergraph_utils.find_blimage_nodes(nt)
+        for n in nodes:
+            node_name = __BL_NODES_MAP__.get('PxrTexture', None)
+            rman_node = nt.nodes.new(node_name)
+            rman_node.location[0] = n.location[0]
+            rman_node.location[1] = n.location[1]
+            cycles_convert.convert_tex_image_node(nt, n, rman_node, ob=mat)
+
+            # hook up color and alpha sockets
+            for k,v in {'Color': 'resultRGB', 'Alpha': 'resultA'}.items():
+                socket = n.outputs[k]
+                for l in socket.links:
+                    # only connect to rman nodes
+                    if not hasattr(l.to_node, 'renderman_node_type'):
+                        continue
+                    to_socket = l.to_socket
+                    nt.links.new(rman_node.outputs[v], to_socket)
+
+            nt.nodes.remove(n)
+
+        return {"FINISHED"}    
 
 
 classes = [
@@ -876,7 +910,8 @@ classes = [
     PRMAN_OT_Select_Nodetree_Node,
     PRMAN_OT_Select_Nodetree_Reset,
     PRMAN_MT_Select_Nodetree_Downstream,
-    PRMAN_MT_Select_Nodetree_Upstream    
+    PRMAN_MT_Select_Nodetree_Upstream,
+    PRMAN_OT_Convert_BlImage_Nodes    
 ]
 
 def register():
