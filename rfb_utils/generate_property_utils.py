@@ -322,11 +322,13 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
         slider_max = int(sp.slidermax) if hasattr(sp, 'slidermax') else param_max      
 
     # check if there's a slidermin/slidermax, but no min/max
+    '''
     if hasattr(sp, 'slidermin') and not hasattr(sp, 'min'):
         param_min = slider_min          
 
     if hasattr(sp, 'slidermax') and not hasattr(sp, 'max'):
         param_max = slider_max                 
+    '''
 
     if isinstance(update_function, str):
         lcls = locals()
@@ -412,8 +414,8 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                                         default=param_default, precision=prop_precision,
                                         min = param_min,
                                         max = param_max,
-                                        soft_min=param_min,
-                                        soft_max=param_max,
+                                        soft_min=slider_min,
+                                        soft_max=slider_max,
                                         step=prop_stepsize,
                                         options=options,
                                         description=param_help, set=set_function, get=get_function, update=update_function)
@@ -423,8 +425,8 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                                      default=param_default, precision=prop_precision,
                                      min = param_min,
                                      max = param_max,
-                                     soft_min=param_min,
-                                     soft_max=param_max,
+                                     soft_min=slider_min,
+                                     soft_max=slider_max,
                                      step=prop_stepsize,
                                      options=options,
                                      description=param_help, set=set_function, get=get_function, update=update_function)
@@ -494,8 +496,8 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                                     default=param_default,
                                     min = param_min,
                                     max = param_max,
-                                    soft_min=param_min,
-                                    soft_max=param_max,
+                                    soft_min=slider_min,
+                                    soft_max=slider_max,
                                     options=options,
                                     description=param_help, set=set_function, get=get_function, update=update_function)
 
@@ -504,8 +506,8 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                                    default=param_default,
                                    min = param_min,
                                    max = param_max,
-                                   soft_min=param_min,
-                                   soft_max=param_max,
+                                   soft_min=slider_min,
+                                   soft_max=slider_max,
                                    options=options,
                                    description=param_help, set=set_function, get=get_function, update=update_function)
         renderman_type = 'int'
@@ -646,8 +648,8 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                                     default=param_default, size=2,
                                     min = param_min,
                                     max = param_max,
-                                    soft_min=param_min,
-                                    soft_max=param_max,                                    
+                                    soft_min=slider_min,
+                                    soft_max=slider_max,                                    
                                     options=options,
                                     description=param_help, set=set_function, update=update_function)
         renderman_type = 'int'
@@ -694,8 +696,8 @@ def generate_property(node, sp, update_function=None, set_function=None, get_fun
                                     step=prop_stepsize,
                                     min = param_min,
                                     max = param_max,
-                                    soft_min=param_min,
-                                    soft_max=param_max,                                    
+                                    soft_min=slider_min,
+                                    soft_max=slider_max,                                    
                                     precision=prop_precision,
                                     options=options,
                                     description=param_help, set=set_function, update=update_function)

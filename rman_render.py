@@ -607,6 +607,7 @@ class RmanRender(object):
                 self.rman_license_failed_message = 'PhotoRealistic-RenderMan licenses have expired (%s).' % str(status.exp_date)
        
         if self.rman_license_failed:
+            rfb_log().error(self.rman_license_failed_message)
             if not self.rman_interactive_running:
                 self.bl_engine.report({'ERROR'}, self.rman_license_failed_message)
                 self.stop_render()
@@ -1084,9 +1085,9 @@ class RmanRender(object):
         if self._do_prman_render_begin():
             return False        
         __update_areas__()
+        self.rman_interactive_running = True
         if not self._check_prman_license():
             return False          
-        self.rman_interactive_running = True
         self.rman_running = True            
         self.bl_scene = depsgraph.scene_eval
         rm = depsgraph.scene_eval.renderman
