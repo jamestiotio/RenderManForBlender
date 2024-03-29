@@ -626,8 +626,9 @@ class VIEW3D_MT_RM_Dev_Menu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        layout.operator('renderman.start_debug_server')    
-        layout.operator('renderman.run_unit_tests')   
+        layout.operator('renderman.start_debug_server') 
+        layout.operator('renderman.run_unit_tests')
+        layout.operator('renderman.rfb_zip_addon')     
 
 def rman_add_object_menu(self, context):
 

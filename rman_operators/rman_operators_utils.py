@@ -7,7 +7,7 @@ from ..rfb_utils import object_utils
 from ..rfb_utils import upgrade_utils
 from .. import rman_constants
 from bpy.types import Operator
-from bpy.props import StringProperty, FloatProperty
+from bpy.props import StringProperty, FloatProperty, BoolProperty
 import os
 import zipfile
 import bpy
@@ -285,6 +285,55 @@ class PRMAN_OT_Renderman_Package(Operator):
         self.properties.filename = '%s.zip' % bl_filename
         context.window_manager.fileselect_add(self)
         return{'RUNNING_MODAL'} 
+    
+class PRMAN_OT_Renderman_Zip_Addon(Operator):
+    """An operator to create a zip archive of the current version of the addon."""
+
+    bl_idname = "renderman.rfb_zip_addon"
+    bl_label = "Zip Addon"
+    bl_description = "Create a zip archive of the addon. This might be useful if you made changes the code and want to share."   
+    bl_options = {'INTERNAL'}
+
+    directory: StringProperty(subtype='FILE_PATH')
+    filter_folder: BoolProperty(
+        default=True,
+        options={"HIDDEN"}
+        )   
+
+    @classmethod
+    def poll(cls, context):
+        return context.engine == "PRMAN_RENDER"
+
+    def execute(self, context):
+
+        if not os.access(self.directory, os.W_OK):
+            self.report({"ERROR"}, "Directory is not writable")
+            return {'FINISHED'}     
+
+        rfb_addon = rman_constants.RFB_ADDON_PATH
+        rfb_zip = os.path.join(self.properties.directory, 'RenderManForBlender.zip')
+        z = zipfile.ZipFile(rfb_zip, mode='w')
+
+        # get all directories and files in the addon path
+        for root, dirnames, files in os.walk(rfb_addon): 
+            if '.git' in root:
+                continue  
+            for f in files:
+                if f in ['.DS_Store']:
+                    continue
+                if os.path.splitext(f)[-1] in ['.pyc']:
+                    continue
+                fpath = os.path.relpath(os.path.join(root, f), rfb_addon)
+                diskpath = os.path.join(root, f)             
+                z.write(diskpath, arcname=os.path.join('RenderManForBlender', fpath))                  
+
+        z.close()
+
+        return {'FINISHED'}
+
+    def invoke(self, context, event=None):
+        context.window_manager.fileselect_add(self)
+        return{'RUNNING_MODAL'}     
 
 class PRMAN_OT_Renderman_Start_Debug_Server(bpy.types.Operator):
     bl_idname = "renderman.start_debug_server"
@@ -372,7 +421,8 @@ classes = [
    PRMAN_OT_Renderman_Upgrade_Scene,
    PRMAN_OT_Renderman_Package,
    PRMAN_OT_Renderman_Start_Debug_Server,
-   PRMAN_OT_Renderman_Run_Unit_Tests
+   PRMAN_OT_Renderman_Run_Unit_Tests,
+   PRMAN_OT_Renderman_Zip_Addon
 ]
 
 def register():
