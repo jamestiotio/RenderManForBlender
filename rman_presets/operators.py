@@ -226,7 +226,7 @@ class PRMAN_OT_load_asset_to_scene(bpy.types.Operator):
         hostPrefs.current_asset = Asset
         if Asset.type() == "nodeGraph" and Asset.displayFilterList():
             return context.window_manager.invoke_props_dialog(self)
-        self.execute(context)
+        return self.execute(context)
 
 class PRMAN_UL_Presets_Meta_Data_List(bpy.types.UIList):
 

@@ -19,7 +19,7 @@ from ..rfb_utils.property_utils import __GAINS_TO_ENABLE__, __LOBES_ENABLE_PARAM
 from ..rfb_logger import rfb_log
 from ..rman_bl_nodes import __BL_NODES_MAP__, __RMAN_NODE_TYPES__
 from ..rman_constants import RMAN_STYLIZED_FILTERS, RFB_FLOAT3, CYCLES_NODE_MAP, RMAN_SUPPORTED_VERSION_STRING
-from ..rman_constants import RFB_ASSET_VERSION_KEY, RFB_ASSET_VERSION
+from ..rman_constants import RFB_ASSET_VERSION_KEY, RFB_ASSET_VERSION, BLENDER_VERSION_MAJOR, BLENDER_VERSION_MINOR
 from ..rfb_utils.shadergraph_utils import RmanConvertNode
 
 import rman_utils.rman_assets.lib as ral
@@ -989,14 +989,27 @@ def setParams(Asset, node, paramsList):
                 elem_type = 'int'
 
             for i in range(array_len):
-                override = {'node': node}           
-                bpy.ops.renderman.add_remove_array_elem(override,
+                if BLENDER_VERSION_MAJOR <=3 and BLENDER_VERSION_MINOR < 2:
+                    override = {'node': node}           
+                    bpy.ops.renderman.add_remove_array_elem(override,
                                                         'EXEC_DEFAULT', 
                                                         action='ADD',
                                                         param_name=pname,
                                                         collection=coll_nm,
                                                         collection_index=coll_idx_nm,
                                                         elem_type=elem_type)            
+
+                else:
+                    context_override = bpy.context.copy()
+                    context_override["node"] = node
+                    with bpy.context.temp_override(**context_override):
+                        bpy.ops.renderman.add_remove_array_elem(
+                                                                'EXEC_DEFAULT', 
+                                                                action='ADD',
+                                                                param_name=pname,
+                                                                collection=coll_nm,
+                                                                collection_index=coll_idx_nm,
+                                                                elem_type=elem_type)            
 
             pval = param.value()
             if pval is None or pval == []:
