@@ -122,7 +122,7 @@
             "label": "IPR Denoiser",
             "type": "int",
             "default": 0,
-            "help": "Select which denoiser to use to denoise IPR renders. Optix requires an Nvidia GPU. Note, the Optix denoiser is built-in into 'it', so selecting Optix here will not do anything when rendering to 'it'.",
+            "help": "Select which denoiser to use to denoise IPR renders. Optix requires an Nvidia GPU. The RenderMan Denoiser option is not supported in XPU. Note, the Optix denoiser is built-in into 'it', so selecting Optix here will not do anything when rendering to 'it'.",
             "widget": "mapper",
             "bl_prop_options": "",
             "options": "None:0|RenderMan Denoiser:1|Optix:2"
