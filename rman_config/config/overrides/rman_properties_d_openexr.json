@@ -3,7 +3,8 @@
     "params": [
         {
             "name": "asrgba",    
-            "default": 0
+            "default": 0,
+            "always_write": true
         }        
     ]
 }
