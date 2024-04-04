@@ -301,12 +301,12 @@ RFB_SHADER_ALLOWED_CONNECTIONS = {
     'LamaLayer': {
         'outputs': {},
         'inputs': {
-            'material1': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+            'materialTop': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
                               'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
                               'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
                               'LamaTranslucent', 'LamaTricolorSSS'
                               ],
-            'material2': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+            'materialBase': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
                               'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
                               'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
                               'LamaTranslucent', 'LamaTricolorSSS'

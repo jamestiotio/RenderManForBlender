@@ -629,16 +629,17 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             allowed = ac_dict['inputs'].get(to_socket.name, list())
             if from_node.bl_label in allowed:
                 return True
-            return False
-        
+            # check if a regular parameter connection is allowed
+            return to_node.accept_link(node_tree, link)
+
         if from_node.bl_label in RFB_SHADER_ALLOWED_CONNECTIONS:
             ac_dict = RFB_SHADER_ALLOWED_CONNECTIONS[from_node.bl_label]
             from_socket = link.from_socket
             allowed = ac_dict['outputs'].get(from_socket.name, list())
             if to_node.bl_label in allowed:
                 return True
-            return False
-            
+            # check if a regular parameter connection is allowed
+            return from_node.accept_link(node_tree, link)
         return True
 
     def update(self):
