@@ -295,8 +295,12 @@ class RmanMaterialTranslator(RmanTranslator):
         bxdf_name = '%s_PxrDisneyBsdf' % name
         sg_node = self.rman_scene.rman.SGManager.RixSGShader("Bxdf", "PxrDisneyBsdf", bxdf_name)
         rix_params = sg_node.params
+        # use the material's Viewport Display properties
         diffuse_color = string_utils.convert_val(mat.diffuse_color, type_hint='color')
         rix_params.SetColor('baseColor', diffuse_color)
+        if len(mat.diffuse_color) == 4:
+            # use the alpha from diffuse_color as presence
+            rix_params.SetFloat('presence', mat.diffuse_color[3])
         rix_params.SetFloat('metallic', mat.metallic )
         rix_params.SetFloat('roughness', mat.roughness)
         rix_params.SetFloat('specReflectScale', mat.metallic )
@@ -463,12 +467,13 @@ class RmanMaterialTranslator(RmanTranslator):
                     from_node, mat_name, from_socket).replace(':', '_')
                     
             val = property_utils.get_output_param_str(rman_sg_material, from_node, mat_name, from_socket)
-            sg_node = self.rman_scene.rman.SGManager.RixSGShader("Pattern", node_type, node_name)
-            rix_params = sg_node.params       
-            if input_type == 'color':
-                rix_params.SetColorReference('input', val)
-            else:
-                rix_params.SetFloatReference('input', val)            
+            if val is not None and val != '':
+                sg_node = self.rman_scene.rman.SGManager.RixSGShader("Pattern", node_type, node_name)
+                rix_params = sg_node.params       
+                if input_type == 'color':
+                    rix_params.SetColorReference('input', val)
+                else:
+                    rix_params.SetFloatReference('input', val)            
                     
             return [sg_node]
         elif node.bl_idname == 'NodeReroute':

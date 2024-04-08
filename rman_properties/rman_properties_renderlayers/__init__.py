@@ -7,6 +7,7 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
 from ... import rman_bl_nodes
 from ... import rman_config
 from ...rfb_utils import scene_utils
+from ...rfb_utils.property_callbacks import update_displays_func
 from ... import rfb_icons
 from ...rman_config import RmanBasePropertyGroup
 
@@ -16,13 +17,15 @@ class RendermanDspyChannel(RmanBasePropertyGroup, bpy.types.PropertyGroup):
 
     def update_name(self, context):
         self.channel_name = self.name
+        update_displays_func(None, context)
 
     name: StringProperty(name='Channel Name', update=update_name)
-    channel_name: StringProperty()
+    channel_name: StringProperty(update=update_displays_func)
 
     channel_source: StringProperty(name="Channel Source",
             description="Source definition for the channel",
-            default="lpe:C[<.D><.S>][DS]*[<L.>O]"
+            default="lpe:C[<.D><.S>][DS]*[<L.>O]",
+            update=update_displays_func
             )
 
     channel_type: EnumProperty(name="Channel Type",
@@ -34,14 +37,16 @@ class RendermanDspyChannel(RmanBasePropertyGroup, bpy.types.PropertyGroup):
                 ("normal", "normal", ""),
                 ("point", "point", ""),
                 ("integer", "integer", "")],
-            default="color"
+            default="color",
+            update=update_displays_func
             )            
 
     is_custom: BoolProperty(name="Custom", default=False)
 
     custom_lpe_string: StringProperty(
         name="lpe String",
-        description="This is where you enter the custom lpe string")
+        description="This is where you enter the custom lpe string",
+        update=update_displays_func)
 
     def object_groups(self, context):
         items = []
@@ -54,7 +59,7 @@ class RendermanDspyChannel(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         return items        
 
     object_group: EnumProperty(name='Object Group', items=object_groups)       
-    light_group: StringProperty(name='Light Group', default='')
+    light_group: StringProperty(name='Light Group', default='', update=update_displays_func)
 
 class RendermanDspyChannelPointer(bpy.types.PropertyGroup):
     dspy_chan_idx: IntProperty(default=-1, name="Display Channel Index")

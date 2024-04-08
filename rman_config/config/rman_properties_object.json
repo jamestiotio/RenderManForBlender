@@ -862,32 +862,7 @@
                 "conditionalVisPath": "dice_referenceCameraType",
                 "conditionalVisValue": 1
             }
-        },      
-        {
-            "panel": "OBJECT_PT_renderman_object_geometry_volume",
-            "page": "",
-            "name": "volume_temporalmethod",
-            "label": "Temporal Method",
-            "primvar": "volume:temporalmethod",
-            "type": "int",
-            "ipr_editable": true,
-            "default": 0,
-            "widget": "mapper",   
-            "options": "Eulerian:0|Reves:1",                     
-            "conditionalVisOps": {
-                "conditionalVis1Path": "bl_object_type",
-                "conditionalVis2Op": "equalTo",
-                "conditionalVis1Value": "OPENVDB",
-                "conditionalVisOp": "or",
-                "conditionalVis1Op": "equalTo",
-                "conditionalVisLeft": "conditionalVis1",
-                "conditionalVisRight": "conditionalVis2",
-                "conditionalVis2Path": "bl_object_type",
-                "conditionalVis2Value": "RI_VOLUME"
-            }, 
-            "update_function_name": "lambda s, c: update_primvar_func(s, 'volume_temporalmethod', c)",            
-            "help": "Method of generating temporal data for volume rendering."
-        },  
+        },       
         {
             "panel": "OBJECT_PT_renderman_object_geometry_volume",
             "page": "",

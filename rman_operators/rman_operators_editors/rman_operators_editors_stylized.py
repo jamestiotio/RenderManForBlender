@@ -224,7 +224,7 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
             col.separator()
             col.label(text=node.name)
             col.separator()
-            draw_node_properties_recursive(layout, context, mat.node_tree, node, level=1)
+            draw_node_properties_recursive(layout, context, mat.node_tree, node, level=1, single_node_view=False)
 
     def draw_filters_tab(self, context):
         scene = context.scene   
@@ -263,7 +263,7 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
             layout.prop(selected_stylized_node, "is_active")
             layout.prop(node, 'name')
             if selected_stylized_node.is_active:
-                draw_node_properties_recursive(layout, context, nt, selected_stylized_node, level=1)             
+                draw_node_properties_recursive(layout, context, nt, selected_stylized_node, level=1, single_node_view=False)             
 
     def draw(self, context):
 

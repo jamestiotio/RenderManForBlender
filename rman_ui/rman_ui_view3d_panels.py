@@ -165,33 +165,6 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                 row = layout.row(align=True)
                 row.label(text="No Camera Selected")
 
-        layout.separator()
-        layout.label(text="Lights:")
-        box = layout.box()
-
-        box.menu('VIEW3D_MT_RM_Add_Light_Menu', text='Add Light', icon_value=bpy.types.VIEW3D_MT_RM_Add_Light_Menu.get_icon_id())
-        box.menu('VIEW3D_MT_RM_Add_LightFilter_Menu', text='Add Light Filter', icon_value=bpy.types.VIEW3D_MT_RM_Add_LightFilter_Menu.get_icon_id())               
-
-        # Editors
-        layout.separator()
-        layout.label(text="Editors:")
-        box = layout.box()
-        box.operator('scene.rman_open_light_mixer_editor', text='Light Mixer')
-        box.operator('scene.rman_open_light_linking', text='Light Linking')
-        box.operator('scene.rman_open_groups_editor', text='Trace Sets')
-        rman_vol_agg = rfb_icons.get_icon("rman_vol_aggregates")
-        box.operator('scene.rman_open_vol_aggregates_editor', text='Volume Aggregates', icon_value=rman_vol_agg.icon_id)
-
-        layout.separator()
-        layout.label(text="Apps:")
-        box = layout.box()
-        rman_it = rfb_icons.get_icon("rman_it")
-        box.operator("renderman.start_it", icon_value=rman_it.icon_id)  
-        rman_lq = rfb_icons.get_icon("rman_localqueue")
-        box.operator("renderman.start_localqueue", icon_value=rman_lq.icon_id)          
-        rman_lapp = rfb_icons.get_icon("rman_licenseapp")
-        box.operator("renderman.start_licenseapp", icon_value=rman_lapp.icon_id)        
-        
         selected_objects = []
         selected_light_objects = []
         if context.selected_objects:
@@ -223,6 +196,33 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
             # Create Archive node
             box.menu('VIEW3D_MT_RM_Add_Export_Menu', icon_value=bpy.types.VIEW3D_MT_RM_Add_Export_Menu.get_icon_id())
 
+        layout.separator()
+        layout.label(text="Lights:")
+        box = layout.box()
+
+        box.menu('VIEW3D_MT_RM_Add_Light_Menu', text='Add Light', icon_value=bpy.types.VIEW3D_MT_RM_Add_Light_Menu.get_icon_id())
+        box.menu('VIEW3D_MT_RM_Add_LightFilter_Menu', text='Add Light Filter', icon_value=bpy.types.VIEW3D_MT_RM_Add_LightFilter_Menu.get_icon_id())               
+
+        # Editors
+        layout.separator()
+        layout.label(text="Editors:")
+        box = layout.box()
+        box.operator('scene.rman_open_light_mixer_editor', text='Light Mixer')
+        box.operator('scene.rman_open_light_linking', text='Light Linking')
+        box.operator('scene.rman_open_groups_editor', text='Trace Sets')
+        rman_vol_agg = rfb_icons.get_icon("rman_vol_aggregates")
+        box.operator('scene.rman_open_vol_aggregates_editor', text='Volume Aggregates', icon_value=rman_vol_agg.icon_id)
+
+        layout.separator()
+        layout.label(text="Apps:")
+        box = layout.box()
+        rman_it = rfb_icons.get_icon("rman_it")
+        box.operator("renderman.start_it", icon_value=rman_it.icon_id)  
+        rman_lq = rfb_icons.get_icon("rman_localqueue")
+        box.operator("renderman.start_localqueue", icon_value=rman_lq.icon_id)          
+        rman_lapp = rfb_icons.get_icon("rman_licenseapp")
+        box.operator("renderman.start_licenseapp", icon_value=rman_lapp.icon_id)        
+        
         # Diagnose
         layout.separator()
         layout.label(text='Diagnose:')
@@ -266,16 +266,28 @@ class RENDER_PT_renderman_live_stats(bpy.types.Panel, _RManPanelHeader):
         scene = context.scene
         rm = scene.renderman         
         rr = RmanRender.get_rman_render()
+        prefs = prefs_utils.get_addon_prefs()
         if prefs_utils.using_qt():
             layout.separator()
             layout.operator("renderman.rman_open_stats")  
-            if rr.stats_mgr.is_connected():
-                prefs = prefs_utils.get_addon_prefs()
-                layout.prop(prefs, 'rman_roz_stats_print_level')        
+            layout.prop(prefs, 'rman_roz_stats_print_level')        
         else:    
-            layout.label(text='Diagnostics')
+            layout.prop(prefs, 'rman_roz_stats_print_level')    
+            server_id = rr.stats_mgr.assign_server_id_func()
+            if server_id:
+                layout.label(text='Connected: %s' % server_id)
+            else:
+                layout.label(text='No render active')            
       
             box = layout.box()
+
+            for label in rr.stats_mgr.stats_to_draw:
+                data = rr.stats_mgr.render_live_stats[label]        
+                box.label(text='%s: %s' % (label, data))        
+            if rr.rman_running:   
+                box.prop(rm, 'roz_stats_iterations', slider=True, text='Iterations (%d / %d)' % (rr.stats_mgr._iterations, rr.stats_mgr._maxSamples))
+                box.prop(rm, 'roz_stats_progress', slider=True)            
+            '''
             if rr.stats_mgr.web_socket_enabled:
                 if rr.stats_mgr.is_connected():
                     for label in rr.stats_mgr.stats_to_draw:
@@ -287,12 +299,12 @@ class RENDER_PT_renderman_live_stats(bpy.types.Panel, _RManPanelHeader):
                 
                     prefs = prefs_utils.get_addon_prefs()
                     layout.prop(prefs, 'rman_roz_stats_print_level')
-                    layout.operator("renderman.disconnect_stats_render")
                 else:
                     box.label(text='(not connected)')
                     layout.operator('renderman.attach_stats_render')
             else:
                 box.label(text='(live stats disabled)')                        
+            '''
  
 classes = [
     PRMAN_PT_Renderman_UI_Panel,

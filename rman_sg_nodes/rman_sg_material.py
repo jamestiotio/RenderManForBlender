@@ -10,6 +10,8 @@ class RmanSgMaterial(RmanSgNode):
         self.sg_stroke_mat = None
         self.sg_fill_mat = None
         self.nodes_to_blnodeinfo = dict()
+        self.sg_group = rman_scene.sg_scene.CreateGroup("__lightFilterParent") 
+        self.sg_lightfilters = list() # list to hold light filter transforms
 
     @property
     def has_meshlight(self):

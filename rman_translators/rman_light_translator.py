@@ -24,10 +24,10 @@ s_orientPxrDomeLight = [0.0, 1.0, 0.0, 0.0,
                         0.0, -0.0, 1.0, 0.0, 
                         0.0, 0.0, 0.0, 1.0]
 
-s_orientPxrEnvDayLight = [-0.0, 0.0, -1.0, 0.0,
-                        1.0, 0.0, -0.0, -0.0,
-                        -0.0, 1.0, 0.0, 0.0,
-                        0.0, 0.0, 0.0, 1.0]
+s_orientPxrEnvDayLight = [-0.0, 1.0, 0.0, 0.0, 
+                          1.0, 0.0, -0.0, 0.0, 
+                          0.0, 0.0, 1.0, 0.0, 
+                          0.0, 0.0, 0.0, 1.0]
 
 s_orientPxrEnvDayLightInv = [-0.0, 1.0, -0.0, 0.0,
                             -0.0, 0.0, 1.0, -0.0,
@@ -54,7 +54,7 @@ class RmanLightTranslator(RmanTranslator):
         return rman_sg_light
 
     def update_light_filters(self, ob, rman_sg_light):
-        light = ob.data
+        light = ob.original.data
         rm = light.renderman      
         lightfilter_translator = self.rman_scene.rman_translators['LIGHTFILTER']
         lightfilter_translator.export_light_filters(ob, rman_sg_light, rm)
@@ -174,8 +174,7 @@ class RmanLightTranslator(RmanTranslator):
 
         elif light_shader_name == 'PxrEnvDayLight': 
             if int(light_shader.month) != 0:   
-                #m = Matrix.Rotation(math.radians(-90.0), 4, 'Z')
-                m = Matrix.Identity(4)
+                m = transform_utils.convert_to_blmatrix(s_orientPxrEnvDayLight)
                 rman_sg_light.sg_node.SetOrientTransform(transform_utils.convert_matrix4x4(m))    
         elif light_shader_name == 'PxrDomeLight':
             rman_sg_light.sg_node.SetOrientTransform(s_orientPxrDomeLight)
