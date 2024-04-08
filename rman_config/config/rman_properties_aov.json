@@ -19,7 +19,7 @@
             "default": 0,
             "widget": "checkbox",
             "page": "",
-            "help": ""
+            "help": "Denoise this AOV. Note, the beauty pass denoise needs to be enabled, in order to denoise any other AOVs."
         },  
         {
             "panel": "RENDER_PT_layer_custom_aovs",            

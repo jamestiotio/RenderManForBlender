@@ -1,3 +1,31 @@
+v26.0, April 02, 2024
+
+New Features:
+* Blender 3.6 and 4.1 are now officially supported. Note, the Qt framework is not
+supported in 4.1
+* Viewport renders can now use the RenderMan AI denoiser as well as the OptiX denoiser.
+* Add a new menu item in the shader graph to convert selected Cycles image nodes 
+to PxrTexture nodes. This is useful when dragging and dropping image files from the file
+browser to the shader graph.
+
+Changes:
+* For the material properties panel, we now display only the current selected node, rather
+than inlining all connections. This can be turned off in the preferences.
+* You can now specify the namespace for user attributes. Default is "user".
+* Shorten the name for the PxrSurface lobe checkboxes.
+* The Blender Subdivision Surface modifier's levels setting (viewport and render) now
+works with RenderMan. Note, RenderMan's subdivision mesh scheme attribute still takes
+precedence over the modifier.
+
+Bug Fixes:
+* Fix issues with texturing being incorrect for PxrDomeLight in the viewport.
+* Orientation of the PxrEnvDayLight was incorrect in the viewport. This change will cause 
+look differences in older scenes.
+* Fix a number bugs related to child objects not inherting attributes from their
+parents correctly. 
+* Fix a bug that was causing exporting of hair curves object to be slow.
+* Fix an issue where metaballs did not render in Blender 3.6
+
 v25.2, June 29, 2023
 
 Changes:

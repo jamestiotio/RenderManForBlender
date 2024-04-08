@@ -178,14 +178,11 @@ class RmanTranslator(object):
             if lightfilter_subset:
                 lightfilter_subset = lightfilter_subset + all_lightfilters
                 attrs.SetString(self.rman_scene.rman.Tokens.Rix.k_lightfilter_subset, ',' . join(lightfilter_subset))
-             
-    def export_object_attributes(self, ob, rman_sg_node, remove=True):
-        if not rman_sg_node.sg_node:
-            return          
+
+    def export_object_attributes_attrs(self, ob, attrs, remove=True):
 
         name = ob.name_full
         rm = ob.renderman
-        attrs = rman_sg_node.sg_node.GetAttributes()
 
         # set any properties marked riattr in the config file
         for prop_name, meta in rm.prop_meta.items():
@@ -229,7 +226,18 @@ class RmanTranslator(object):
         for ua in rm.user_attributes:
             param_type = ua.type
             val = getattr(ua, 'value_%s' % ua.type)
-            ri_name = 'user:%s' % ua.name
+            namespace = ua.namespace
+            if namespace == '':
+                namespace = 'user'
+            ri_name = '%s:%s' % (namespace, ua.name)
             property_utils.set_rix_param(attrs, param_type, ri_name, val, is_reference=False, is_array=False)
+   
+
+    def export_object_attributes(self, ob, rman_sg_node, remove=True):
+        if not rman_sg_node.sg_node:
+            return          
+
+        attrs = rman_sg_node.sg_node.GetAttributes()
+        self.export_object_attributes_attrs(ob, attrs, remove=remove)
 
         rman_sg_node.sg_node.SetAttributes(attrs)  

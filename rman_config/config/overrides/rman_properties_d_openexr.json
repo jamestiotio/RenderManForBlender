@@ -1,0 +1,10 @@
+{
+    "name": "d_openexr.args",
+    "params": [
+        {
+            "name": "asrgba",    
+            "default": 0,
+            "always_write": true
+        }        
+    ]
+}

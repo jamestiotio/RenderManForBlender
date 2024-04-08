@@ -7,7 +7,7 @@ from ..rfb_utils import draw_utils
 from ..rfb_utils.property_utils import BlPropInfo, __LOBES_ENABLE_PARAMS__
 from ..rfb_utils import filepath_utils
 from ..rman_config import __RFB_CONFIG_DICT__
-from ..rman_constants import RFB_FLOAT3
+from ..rman_constants import RFB_FLOAT3, RFB_SHADER_ALLOWED_CONNECTIONS
 from .. import rman_bl_nodes
 from .. import rfb_icons
 from .. import rman_render
@@ -147,7 +147,8 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         node = self
         prop_meta = node.prop_meta[prop_name]
         bl_prop_info = BlPropInfo(node, prop_name, prop_meta)
-        if bl_prop_info.prop is None:
+        ui_structs = getattr(node, 'ui_structs', dict())
+        if not bl_prop_info.is_ui_struct and bl_prop_info.prop is None:
             return
         if bl_prop_info.widget == 'null':
             return
@@ -168,7 +169,38 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         if bl_prop_info.prop_hidden:
             return
 
-        if bl_prop_info.widget == 'colorramp':
+        if bl_prop_info.is_ui_struct:                      
+            ui_prop = prop_name + "_uio"
+            ui_open = getattr(node, ui_prop)
+            icon = draw_utils.get_open_close_icon(ui_open)
+
+            split = layout.split(factor=NODE_LAYOUT_SPLIT)
+            row = split.row()
+            row.enabled = not bl_prop_info.prop_disabled
+            row.context_pointer_set("node", node)
+            op = row.operator('node.rman_open_close_page', text='', icon=icon, emboss=False)            
+            op.prop_name = ui_prop
+            prop_label = bl_prop_info.label
+            arraylen_nm = '%s_arraylen' % prop_name
+            arraylen = getattr(node, arraylen_nm)
+            array_label = prop_label + ' [%d]:' % arraylen
+            row.label(text=array_label) 
+            if ui_open:         
+                row = layout.row(align=True)
+                draw_utils.draw_indented_label(row, None, level+1)                
+                row.prop(node, arraylen_nm, text=bl_prop_info.label) 
+                draw_utils.draw_sticky_toggle(row, node, prop_name, output_node) 
+                ui_struct_members = ui_structs.get(prop_name)
+                for i in range(arraylen):
+                    draw_utils.draw_indented_label(layout, prop_label + ' [%d]:' % i, level)
+                    for nm in ui_struct_members:
+                        sub_prop_name = '%s[%d]' % (nm, i)
+                        meta = node.prop_meta[sub_prop_name]
+                        if meta.get('__noconnection', False):
+                             self.draw_nonconnectable_prop(context, layout, sub_prop_name, output_node=output_node, level=level+1)
+
+            return                
+        elif bl_prop_info.widget == 'colorramp':
             node_group = self.rman_fake_node_group_ptr
             if not node_group:
                 row = layout.row(align=True)
@@ -307,6 +339,12 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                 prop_search_parent = options.get('prop_parent')
                 prop_search_name = options.get('prop_name')
                 eval(f'row.prop_search(node, prop_name, {prop_search_parent}, "{prop_search_name}")') 
+                if prop_search_parent == 'context.scene.renderman':
+                    rman_icon = rfb_icons.get_icon('rman_blender')
+                    if prop_search_name == 'object_groups':                
+                        row.operator('scene.rman_open_groups_editor', text='', icon_value=rman_icon.icon_id )
+                    elif prop_search_name == 'vol_aggregates':
+                        row.operator('scene.rman_open_vol_aggregates_editor', text='', icon_value=rman_icon.icon_id )                
                 draw_utils.draw_sticky_toggle(row, node, prop_name, output_node)   
 
             elif bl_prop_info.read_only:
@@ -353,10 +391,10 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                 if hasattr(self, prop_name):
                     prop_meta = self.prop_meta[prop_name]
                     if self.bl_label == 'PxrLayer':
-                        page_label = 'Enable %s' % prop_meta['page']
+                        page_label = '%s' % prop_meta['page']
                         col.prop(self, prop_name, text=page_label)
                     else:
-                        page_label = 'Enable %s' % prop_meta['label']
+                        page_label = '%s' % prop_meta['label']
                         col.prop(self, prop_name, text=page_label )                      
 
         if self.bl_idname == "PxrOSLPatternNode":
@@ -577,6 +615,32 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             return True                       
 
         return True
+    
+    def check_allowed_connections(self, node_tree, link):
+        to_node = link.to_node
+        from_node = link.from_node
+
+        if to_node.bl_label not in RFB_SHADER_ALLOWED_CONNECTIONS and from_node.bl_label not in RFB_SHADER_ALLOWED_CONNECTIONS:
+            return True
+        
+        if to_node.bl_label in RFB_SHADER_ALLOWED_CONNECTIONS:
+            ac_dict = RFB_SHADER_ALLOWED_CONNECTIONS[to_node.bl_label]
+            to_socket = link.to_socket
+            allowed = ac_dict['inputs'].get(to_socket.name, list())
+            if from_node.bl_label in allowed:
+                return True
+            # check if a regular parameter connection is allowed
+            return to_node.accept_link(node_tree, link)
+
+        if from_node.bl_label in RFB_SHADER_ALLOWED_CONNECTIONS:
+            ac_dict = RFB_SHADER_ALLOWED_CONNECTIONS[from_node.bl_label]
+            from_socket = link.from_socket
+            allowed = ac_dict['outputs'].get(from_socket.name, list())
+            if to_node.bl_label in allowed:
+                return True
+            # check if a regular parameter connection is allowed
+            return from_node.accept_link(node_tree, link)
+        return True
 
     def update(self):
         node_tree = self.id_data
@@ -592,6 +656,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             accept_link = True
             if hasattr(to_node, 'accept_link'):
                 accept_link = to_node.accept_link(node_tree, link)
+            accept_link = accept_link and self.check_allowed_connections(node_tree, link)
             if not accept_link:
                 node_tree = self.id_data
                 try:

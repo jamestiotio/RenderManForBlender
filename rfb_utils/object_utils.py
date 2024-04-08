@@ -151,6 +151,8 @@ def _is_deforming_(ob):
 
 def is_transforming(ob, recurse=False):
     transforming = (ob.animation_data is not None)
+    if not transforming:
+        transforming = (ob.original.animation_data is not None)
     if not transforming and ob.parent:
         transforming = is_transforming(ob.parent, recurse=True)
         if not transforming and ob.parent.type == 'CURVE' and ob.parent.data:
@@ -167,7 +169,17 @@ def has_empty_parent(ob):
         return True
     return False
 
+def find_parent(ob):
+    # Look for a parent that is not an armature or a camera
+    if ob.parent is not None:
+        if ob.parent.type in ['CAMERA']:
+            return find_parent(ob.parent)
+        return ob.parent
+    return None
+
+
 def prototype_key(ob):
+    use_gpu_subdiv = getattr(bpy.context.preferences.system, 'use_gpu_subdivision', False)
     if isinstance(ob, bpy.types.DepsgraphObjectInstance):
         if ob.is_instance:
             if ob.object.data:
@@ -175,7 +187,6 @@ def prototype_key(ob):
             else:
                 return '%s-OBJECT' % ob.object.name_full
         if ob.object.data:
-            use_gpu_subdiv = getattr(bpy.context.preferences.system, 'use_gpu_subdivision', False)
             if isinstance(ob.object.data, bpy.types.Mesh) and use_gpu_subdiv:
                 '''
                 Blender 3.1 added a new use gpu acceleration for subdivs:
@@ -184,21 +195,47 @@ def prototype_key(ob):
 
                 Unfortunately, this seems to cause all objects with the subdiv modifier to use the same
                 name for their data property (Mesh). For now, if the option is turned on use
-                the object name.
+                look for the object in bpy.data.objects, and use that instance's data name.
 
                 We can remove this once this gets fixed in Blender: 
                 https://projects.blender.org/blender/blender/issues/111393
                 '''
-                return '%s-DATA' % ob.object.original.name_full
+                data_ob = bpy.data.objects[ob.object.name]
+                return '%s-DATA' % data_ob.original.data.name_full
+
             elif BLENDER_HAS_CURVES_NODE and isinstance(ob.object.data, bpy.types.Curves):
                 '''
                 Looks like a similar problem as above happens with Curves as well. The data block
                 name is not unique when you have multiple Curves object.
                 '''
-                return '%s-DATA' % ob.object.original.name_full
+                data_ob = bpy.data.objects[ob.object.name]
+                return '%s-DATA' % data_ob.original.data.name_full            
             return '%s-DATA' % ob.object.data.name_full
         return '%s-OBJECT' % ob.object.original.name_full
     elif ob.data:
+        if isinstance(ob.data, bpy.types.Mesh) and use_gpu_subdiv:
+            '''
+            Blender 3.1 added a new use gpu acceleration for subdivs:
+
+            https://wiki.blender.org/wiki/Reference/Release_Notes/3.1/Modeling
+
+            Unfortunately, this seems to cause all objects with the subdiv modifier to use the same
+            name for their data property (Mesh). For now, if the option is turned on use
+            look for the object in bpy.data.objects, and use that instance's data name.
+
+            We can remove this once this gets fixed in Blender: 
+            https://projects.blender.org/blender/blender/issues/111393
+            '''
+            data_ob = bpy.data.objects[ob.name]
+            return '%s-DATA' % data_ob.original.data.name_full
+
+        elif BLENDER_HAS_CURVES_NODE and isinstance(ob.data, bpy.types.Curves):
+            '''
+            Looks like a similar problem as above happens with Curves as well. The data block
+            name is not unique when you have multiple Curves object.
+            '''
+            data_ob = bpy.data.objects[ob.name]
+            return '%s-DATA' % data_ob.original.data.name_full   
         return '%s-DATA' % ob.original.data.original.name_full
     return '%s-OBJECT' % ob.original.name_full
 

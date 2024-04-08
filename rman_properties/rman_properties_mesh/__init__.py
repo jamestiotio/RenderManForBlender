@@ -2,7 +2,8 @@ from bpy.props import PointerProperty, IntProperty, CollectionProperty
 
 from ...rfb_logger import rfb_log 
 from ...rman_config import RmanBasePropertyGroup
-from ..rman_properties_misc import RendermanMeshPrimVar, RendermanReferencePosePrimVars 
+from ...rman_constants import META_AS_MESH
+from ..rman_properties_misc import RendermanMeshPrimVar, RendermanReferencePosePrimVars, RendermanReferencePoseNormalsPrimVars 
 
 import bpy
 
@@ -13,6 +14,10 @@ class RendermanMeshGeometrySettings(RmanBasePropertyGroup, bpy.types.PropertyGro
 
     reference_pose: CollectionProperty(
         type=RendermanReferencePosePrimVars, name=""
+    )
+
+    reference_pose_normals: CollectionProperty(
+        type=RendermanReferencePoseNormalsPrimVars, name=""
     )
 
 classes = [         
@@ -30,6 +35,14 @@ def register():
     bpy.types.Mesh.renderman = PointerProperty(
         type=RendermanMeshGeometrySettings,
         name="Renderman Mesh Geometry Settings")
+    
+    # blender 3.6 provides us a mesh version
+    # of metaballs, so we need to add a renderman
+    # pointer property in order to use the rman_mesh_translator
+    if META_AS_MESH:
+        bpy.types.MetaBall.renderman = PointerProperty(
+            type=RendermanMeshGeometrySettings,
+            name="Renderman Mesh Geometry Settings")
 
 def unregister():
 

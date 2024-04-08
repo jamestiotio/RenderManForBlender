@@ -114,7 +114,12 @@ class RmanFluidTranslator(RmanTranslator):
     def update_fluid_mesh(self, ob, rman_sg_fluid, psys, fluid_data):
         sg_node = rman_sg_fluid.rman_sg_liquid_node
         mesh = ob.data
-        (nverts, verts, P, N) = mesh_utils.get_mesh(mesh, get_normals=True)
+        rman_mesh = mesh_utils.get_mesh(mesh, get_normals=True)
+        nverts = rman_mesh.nverts
+        verts = rman_mesh.verts
+        P = rman_mesh.P
+        N = rman_mesh.N
+
         npolys = len(nverts) 
         npoints = len(P)
         numnverts = len(verts)
@@ -140,7 +145,7 @@ class RmanFluidTranslator(RmanTranslator):
                 rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
                 if rman_sg_material:
                     material_sg_node = rman_sg_material.sg_node
-            scenegraph_utils.set_material(sg_node, material_sg_node)         
+            scenegraph_utils.set_material(sg_node, material_sg_node, rman_sg_material, mat=mat, ob=ob)         
 
     def update_fluid_particles(self, ob, rman_sg_fluid, psys, fluid_data):
         sg_node = rman_sg_fluid.rman_sg_liquid_node
@@ -183,7 +188,7 @@ class RmanFluidTranslator(RmanTranslator):
                 rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
                 if rman_sg_material:
                     material_sg_node = rman_sg_material.sg_node
-            scenegraph_utils.set_material(sg_node, material_sg_node)   
+            scenegraph_utils.set_material(sg_node, material_sg_node, rman_sg_material, mat=mat, ob=ob)   
                  
     def update_fluid_openvdb(self, ob, rman_sg_fluid, fluid_data):
         cacheFile = locate_openVDB_cache(fluid_data.cache_directory, self.rman_scene.bl_frame_current)

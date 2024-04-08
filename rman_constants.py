@@ -17,9 +17,17 @@ BLENDER_VERSION = bpy.app.version
 
 # Starting with Blender 3.5, the bgl module is considered deprecated
 # addons are to use the gpu module
-USE_GPU_MODULE = ( BLENDER_VERSION_MAJOR == 3 and BLENDER_VERSION_MINOR >= 5)
+USE_GPU_MODULE = BLENDER_VERSION >= (3, 5, 0)
 
-BLENDER_HAS_CURVES_NODE = (BLENDER_VERSION_MAJOR == 3 and BLENDER_VERSION_MINOR >= 3)
+# Starting with Blender 3.6, Blender will now hand us metaballs in the depsgraph as meshes
+# we can ignore "META" objects
+META_AS_MESH = BLENDER_VERSION >= (3, 6, 0)
+
+# curve nodes were added in Blender 3.3
+BLENDER_HAS_CURVES_NODE = BLENDER_VERSION >= (3, 3, 0) 
+
+# Check if we are using Blender 4.1
+BLENDER_41 = BLENDER_VERSION >= (4, 1, 0)
 
 BLENDER_SUPPORTED_VERSION_MAJOR = 2
 BLENDER_SUPPORTED_VERSION_MINOR = 93
@@ -31,15 +39,15 @@ BLENDER_PYTHON_VERSION_MAJOR = pyver.major
 BLENDER_PYTHON_VERSION_MINOR = pyver.minor
 BLENDER_PYTHON_VERSION = '%s.%s' % (pyver.major, pyver.minor)
 
-RMAN_SUPPORTED_VERSION_MAJOR = 25
-RMAN_SUPPORTED_VERSION_MINOR = 1
+RMAN_SUPPORTED_VERSION_MAJOR = 26
+RMAN_SUPPORTED_VERSION_MINOR = 0
 RMAN_SUPPORTED_VERSION_BETA = ''
 RMAN_SUPPORTED_VERSION = (RMAN_SUPPORTED_VERSION_MAJOR, RMAN_SUPPORTED_VERSION_MINOR, RMAN_SUPPORTED_VERSION_BETA)
 RMAN_SUPPORTED_VERSION_STRING = '%d.%d%s' % (RMAN_SUPPORTED_VERSION_MAJOR, RMAN_SUPPORTED_VERSION_MINOR, RMAN_SUPPORTED_VERSION_BETA)
 
 RFB_SCENE_VERSION_MAJOR = RMAN_SUPPORTED_VERSION_MAJOR
 RFB_SCENE_VERSION_MINOR = RMAN_SUPPORTED_VERSION_MINOR
-RFB_SCENE_VERSION_PATCH = 1
+RFB_SCENE_VERSION_PATCH = 0
 RFB_SCENE_VERSION_STRING = '%d.%d.%d' % (RFB_SCENE_VERSION_MAJOR, RFB_SCENE_VERSION_MINOR, RFB_SCENE_VERSION_PATCH)
 
 RFB_ADDON_DESCRIPTION = 'RenderMan %d.%d integration' % (RMAN_SUPPORTED_VERSION_MAJOR, RMAN_SUPPORTED_VERSION_MINOR)
@@ -193,6 +201,7 @@ RMAN_BL_NODE_DESCRIPTIONS = {
     'PxrIntMultLightFilter': "PxrIntMultLightFilter is a light filter that allows you to multiply the intensity/exposure of the light. This is very useful when you want to isolate a particular asset(s) from the rest of the scene that has different intensity/exposure. This is via linking the objects to the PxrIntMultLightFilter. You can now guide your viewer using light intensity!",
     'PxrRampLightFilter': "PxrRampLightFilter uses a ramp to control the light. It may also be useful to artificially and artistically control light decay.",
     'PxrRodLightFilter': "PxrRodLightFilter uses a 'rod' like object to block light. The rod can be shaped into an irregular shape. This rod is then placed next to the object where we want to block the light.\nThis light filter is a more extensive version of PxrBlockerLightFilter.",
+    'PxrCheatShadowLightFilter': "PxrCheatShadowLightFilter provides independent control over shadow positions without affecting the direction of illumination. Use translate for finite light sources (e.g. disk, rect, sphere, etc) and use rotation for infinite light sources (e.g. distant, sun halo, etc)",
 
     # Integrators
     'PxrPathTracer': "PxrPathTracer is a core final-quality integrator in RenderMan. It implements the forward path tracing algorithm, which excels in outdoor, highly specular scenes. The simplicity of the algorithm generally makes it easy to use and to implement. Shortcomings may include slow convergence speeds, especially for scenes with significant caustic illumination.",
@@ -205,4 +214,103 @@ RMAN_BL_NODE_DESCRIPTIONS = {
     'PxrValidateBxdf': "This integrator serves mainly as a debugging tool to authors of Bxdf plugins.",
     'PxrVisualizer': "PxrVisualizer is a utility integrator that can be used to navigate large scenes and inspect geometry during Interactive re-rendering. It allows different styles of viewing, including shaded, flat, normals, st, wireframe.",
 
+}
+
+# LaMa nodes that need a LamaSurface
+RFB_LAMA_NODES = [
+    'LamaAdd', 
+    'LamaConductor', 
+    'LamaDielectric', 
+    'LamaDiffuse', 
+    'LamaEmission', 
+    'LamaGeneralizedSchlick', 
+    'LamaHairChiang', 
+    'LamaIridescence', 
+    'LamaLPE', 
+    'LamaLayer', 
+    'LamaMix', 
+    'LamaSSS', 
+    'LamaSheen',
+    'LamaTranslucent', 
+    'LamaTricolorSSS'
+]
+
+'''
+Dictionary that contains restrictions on shader connections
+ex: LamaSurface should not be an input to LamaMix
+
+{ node_type {
+    'outputs': {
+        name_of_output: (list of node types)
+    }
+    'inputs': {
+        name_of_inputs: (list of node types)
+    }
+}
+
+}
+'''
+RFB_SHADER_ALLOWED_CONNECTIONS = {
+    'LamaSurface': {
+        'outputs': {
+            'bxdf_out': ['RendermanOutputNode']
+        },
+        'inputs': {
+            'materialFront': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+                              'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
+                              'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
+                              'LamaTranslucent', 'LamaTricolorSSS'
+                              ],
+            'materialBack': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+                              'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
+                              'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
+                              'LamaTranslucent', 'LamaTricolorSSS'
+                              ],
+        }          
+    },
+    'LamaAdd': {
+        'outputs': {},
+        'inputs': {
+            'material1': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+                              'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
+                              'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
+                              'LamaTranslucent', 'LamaTricolorSSS'
+                              ],
+            'material2': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+                              'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
+                              'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
+                              'LamaTranslucent', 'LamaTricolorSSS'
+                              ],            
+        }
+    },
+    'LamaMix': {
+        'outputs': {},
+        'inputs': {
+            'material1': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+                              'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
+                              'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
+                              'LamaTranslucent', 'LamaTricolorSSS'
+                              ],
+            'material2': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+                              'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
+                              'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
+                              'LamaTranslucent', 'LamaTricolorSSS'
+                              ],            
+        }
+    },
+    'LamaLayer': {
+        'outputs': {},
+        'inputs': {
+            'materialTop': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+                              'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
+                              'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
+                              'LamaTranslucent', 'LamaTricolorSSS'
+                              ],
+            'materialBase': ['LamaAdd', 'LamaConductor', 'LamaDielectric', 'LamaDiffuse', 'LamaEmission', 
+                              'LamaGeneralizedSchlick', 'LamaHairChiang', 'LamaIridescence', 
+                              'LamaLPE', 'LamaLayer', 'LamaMix', 'LamaSSS', 'LamaSheen',
+                              'LamaTranslucent', 'LamaTricolorSSS'
+                              ],            
+        }
+    },        
 }

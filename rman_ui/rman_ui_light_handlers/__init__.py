@@ -3,11 +3,12 @@ import os
 from gpu_extras.batch import batch_for_shader
 from ...rfb_utils import string_utils
 from ...rfb_utils import prefs_utils
+from ...rfb_utils import transform_utils
 from ...rfb_logger import rfb_log
-from ...rman_constants import RMAN_AREA_LIGHT_TYPES, USE_GPU_MODULE
+from ...rman_constants import RMAN_AREA_LIGHT_TYPES, USE_GPU_MODULE, BLENDER_41
 from .barn_light_filter_draw_helper import BarnLightFilterDrawHelper
 from .frustrum_draw_helper import FrustumDrawHelper
-from mathutils import Vector, Matrix
+from mathutils import Vector, Matrix, Quaternion
 from bpy.app.handlers import persistent
 import mathutils
 import math
@@ -458,6 +459,11 @@ __MTX_Y_180__ = Matrix.Rotation(math.radians(180.0), 4, 'Y')
 __MTX_X_90__ = Matrix.Rotation(math.radians(90.0), 4, 'X')
 __MTX_Y_90__ = Matrix.Rotation(math.radians(90.0), 4, 'Y')
 
+__MTX_ENVDAYLIGHT_ORIENT__ = transform_utils.convert_to_blmatrix([ 
+            1.0000, -0.0000,  0.0000, 0.0000,
+            -0.0000, -0.0000,  1.0000, 0.0000,
+            -0.0000,  1.0000, -0.0000, 0.0000,
+            0.0000,  0.0000,  0.0000, 1.0000])
 
 if USE_GPU_MODULE and not bpy.app.background:
     # Code reference: https://projects.blender.org/blender/blender/src/branch/main/doc/python_api/examples/gpu.7.py
@@ -567,7 +573,10 @@ else:
 
 _SHADER_ = None
 if not bpy.app.background:
-    _SHADER_ = gpu.shader.from_builtin('3D_UNIFORM_COLOR')
+    uniform_color =  '3D_UNIFORM_COLOR'
+    if BLENDER_41:
+        uniform_color = 'UNIFORM_COLOR'
+    _SHADER_ = gpu.shader.from_builtin(uniform_color)
 
 _SELECTED_COLOR_ = (1, 1, 1)
 _WIRE_COLOR_ = (0, 0, 0)
@@ -598,9 +607,7 @@ def _get_sun_direction(ob):
     light = ob.data
     rm = light.renderman.get_light_node()
 
-    m = Matrix.Identity(4)     
-    m = m @ __MTX_X_90__ 
-    m = m @ __MTX_Y_90__ 
+    m = __MTX_ENVDAYLIGHT_ORIENT__
 
     month = float(rm.month)
     day = float(rm.day)
@@ -1134,6 +1141,23 @@ def draw_envday_light(ob):
      
     draw_line_shape(ob, _SHADER_, sphere_shape, sphere_indices)
 
+def draw_cheat_shadow_lightfilter(ob): 
+                 
+    _SHADER_.bind()
+
+    set_selection_color(ob)
+
+    ob_matrix = Matrix(ob.matrix_world)        
+    m = ob_matrix @ __MTX_Y_180__ 
+
+    box = [m @ Vector(pt) for pt in s_rmanLightLogo['box']]
+    box_indices = _get_indices(s_rmanLightLogo['box'])
+    draw_line_shape(ob, _SHADER_, box, box_indices)
+
+    arrow = [m @ Vector(pt) for pt in s_rmanLightLogo['arrow']]
+    arrow_indices = _get_indices(s_rmanLightLogo['arrow'])
+    draw_line_shape(ob, _SHADER_, arrow, arrow_indices)
+
 def draw_disk_light(ob): 
     global _FRUSTUM_DRAW_HELPER_
                  
@@ -1588,7 +1612,7 @@ def draw_barn_light_filter(ob, light_shader, light_shader_name):
     pts = [m @ Vector(pt) for pt in vtx_buffer ]
     indices = _BARN_LIGHT_DRAW_HELPER_.idx_buffer(len(pts), 0, 0)
     # blender wants a list of lists
-    indices = [indices[i:i+2] for i in range(0, len(indices), 2)]
+    indices = [indices[i:i+2] for i in range(0, len(indices), 2) if indices[i] is not None]
 
     draw_line_shape(ob, _SHADER_, pts, indices)
 
@@ -1672,6 +1696,8 @@ def draw():
             draw_rod_light_filter(ob)
         elif light_shader_name == 'PxrRampLightFilter':
             draw_ramp_light_filter(ob)
+        elif light_shader_name == 'PxrCheatShadowLightFilter':
+            draw_cheat_shadow_lightfilter(ob)
         elif light_shader_name in ['PxrGoboLightFilter', 'PxrCookieLightFilter', 'PxrBarnLightFilter']:
             # get all lights that the barn is attached to
             draw_barn_light_filter(ob, light_shader, light_shader_name)

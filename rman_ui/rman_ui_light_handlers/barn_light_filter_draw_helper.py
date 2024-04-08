@@ -3,6 +3,7 @@ from ...rfb_utils import transform_utils
 from mathutils import Vector, Matrix
 import math
 import copy
+import os
 
 CORNERS = [Vector((-0.5, 0.5, 0.0)), Vector((0.5, 0.5, 0.0)),
            Vector((0.5, -0.5, 0.0)), Vector((-0.5, -0.5, 0.0))]
@@ -102,7 +103,8 @@ class BarnLightFilterDrawHelper(object):
 
         light = obj.data
         rm = light.renderman.get_light_node() 
-        self.barnMode = int(getattr(rm, "barnMode", 0))
+        self.cookieMode = int(getattr(rm, 'cookieMode', 0))
+        self.barnMode = int(getattr(rm, "barnMode", self.cookieMode))
         self.mode = self.barnMode
         self.directional = getattr(rm, "directional", 0)
         self.shearX = getattr(rm, "shearX", 0.0)
@@ -507,6 +509,11 @@ class BarnLightFilterDrawHelper(object):
         # near soft shape
         _gl_lines(indices, start_idx + grp_n_vtx, grp_n_vtx, grp_n_idxs,
                   loop=True)
+        
+        if not os.environ.get('RFB_DRAW_BARN_PROJECTION', None) and self.mode == 0:
+            # for now, don't draw the projection in physical mode 
+            # until we can fix the rotation issue (see GitHub #698)
+            return indices
 
         # compute offsets
         vtx_start = start_idx + grp_n_vtx * 2

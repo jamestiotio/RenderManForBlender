@@ -75,7 +75,7 @@ __DEFAULTS__ = {
     'rman_viewport_refresh_rate': 0.01,
     'rman_solo_collapse_nodes': True,
     'rman_use_blend_dir_token': True,          
-    'rman_ui_framework': "NATIVE",
+    'rman_ui_framework': "QT",
     'rpbConfigFile': '',
     'rpbUserLibraries': [],
     'rpbSelectedLibrary': '',
@@ -109,7 +109,8 @@ __DEFAULTS__ = {
     'rman_tractor_whendone': '',
     'rman_tractor_whenerror': '',
     'rman_tractor_whenalways': '',
-    'rman_tractor_dirmaps': []
+    'rman_tractor_dirmaps': [],
+    'rman_single_node_view': True
 }
 
 class RendermanPreferencePath(bpy.types.PropertyGroup):
@@ -522,8 +523,8 @@ class RendermanPreferences(AddonPreferences):
 
     rman_ui_framework: EnumProperty(
         name="UI Framework",
-        default="NATIVE",
-        description="Which UI framework to use. Qt is currently experimental and requires PySide2 to be installed. Changes to this requires a restart.",
+        default="QT",
+        description="Which UI framework to use. Changes to this requires a restart. NOTE: QT is currently not supported in Blender 4.1 and above.",
         items=[('NATIVE', 'Native', ''),
                 ("QT", "Qt", '')
             ]
@@ -587,7 +588,7 @@ class RendermanPreferences(AddonPreferences):
                             ('3', 'Most', ''),
                             ('4', 'All', ''),
                         ],
-                    description="How much live stats to print",
+                    description="How much live stats to print in the viewport",
                     update=update_stats_config
     )
 
@@ -703,6 +704,12 @@ class RendermanPreferences(AddonPreferences):
     )
 
     rman_tractor_dirmaps: bpy.props.CollectionProperty(type=RendermanDirMap)
+
+    rman_single_node_view: BoolProperty(
+        name='Single Node View',
+        default=True,
+        description="If enabled, the Material tab will only show the current selected node, rather than embedding all of the connected nodes."
+    )
 
     def draw_xpu_devices(self, context, layout):
         if self.rman_xpu_device == 'CPU':
@@ -821,6 +828,7 @@ class RendermanPreferences(AddonPreferences):
         col.prop(self, 'rman_ui_framework')
         if self.rman_ui_framework == 'QT':
             col.prop(self, 'rman_show_wip_qt')
+        col.prop(self, 'rman_single_node_view')
 
         # Logging
         row = layout.row()
@@ -882,29 +890,9 @@ class RendermanPreferences(AddonPreferences):
             row = col.row()
             col = row.column()
             col.prop(self, 'rman_roz_logLevel')  
-            col.prop(self, 'rman_roz_liveStatsEnabled')    
-
-            if self.rman_roz_liveStatsEnabled:     
-                try:
-                    from .rman_stats import RfBStatsManager
-                    stats_mgr = RfBStatsManager.get_stats_manager()
-                    split = layout.split()
-                    row = split.row()
-                    col.prop(self, 'rman_roz_webSocketServer_Port', slider=False)
-                    col = row.column()
-                    col.label(text='')
-                    col = row.column()
-                    if stats_mgr:
-                        if stats_mgr.is_connected():
-                            col.operator('renderman.disconnect_stats_render')
-                        else:
-                            col.operator('renderman.attach_stats_render')
-                        col.label(text='              Web Socket Status: %s' % stats_mgr.get_status())   
-           
-                except Exception as e:
-                    rfb_logger.rfb_log().debug("Could not import rman_stats: %s" % str(e))
-                    pass                         
-
+            col.prop(self, 'rman_roz_webSocketServer_Port', slider=False)
+            col.prop(self, 'rman_roz_stats_print_level')
+            
             row = layout.row()
             col = row.column()
             col.label(text='Other', icon_value=rman_r_icon.icon_id)
