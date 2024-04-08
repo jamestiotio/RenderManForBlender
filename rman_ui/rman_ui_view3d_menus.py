@@ -205,7 +205,7 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
             # Add Subdiv Sheme
             rman_subdiv = rfb_icons.get_icon("rman_subdiv")
             layout.operator("mesh.rman_convert_subdiv",
-                            icon_value=rman_subdiv.icon_id)
+                            text="Convert to Subdiv", icon_value=rman_subdiv.icon_id)
 
             layout.separator()
             layout.menu('VIEW3D_MT_RM_Add_Export_Menu', icon_value=VIEW3D_MT_RM_Add_Export_Menu.get_icon_id())
@@ -626,9 +626,7 @@ class VIEW3D_MT_RM_Dev_Menu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        layout.operator('renderman.start_debug_server') 
-        layout.operator('renderman.run_unit_tests')
-        layout.operator('renderman.rfb_zip_addon')     
+        layout.operator('renderman.start_debug_server')       
 
 def rman_add_object_menu(self, context):
 

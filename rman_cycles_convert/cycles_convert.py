@@ -25,7 +25,6 @@
 import bpy
 from ..rfb_utils import texture_utils
 from ..rman_bl_nodes import __BL_NODES_MAP__
-import re
 
 converted_nodes = {}
 report = None
@@ -280,45 +279,13 @@ def convert_cycles_input(nt, socket, rman_node, param_name):
 #########  other node conversion methods  ############
 
 
-def convert_tex_image_node(nt, cycles_node, rman_node, ob=None):
-    if ob is None:
-        ob = __CURRENT_MATERIAL__
+def convert_tex_image_node(nt, cycles_node, rman_node):
     bl_image = cycles_node.image
     if bl_image:
         img_path = texture_utils.get_blender_image_path(bl_image)
         if img_path != '':
-            if bl_image.source == 'TILED':
-                # do something
-                pass
-
             rman_node['filename'] = img_path
-            nodeID = texture_utils.generate_node_id(rman_node, 'filename', ob=ob)
-            texture_utils.get_txmanager().txmanager.add_texture(nodeID, img_path, nodetype='PxrTexture') 
-            txfile = texture_utils.get_txmanager().get_txfile_from_id(nodeID)
-
-            # filter/interpolation
-            if cycles_node.interpolation == 'Linear':
-                rman_node['filter'] = 2
-            elif cycles_node.interpolation == 'Closest':
-                rman_node['filter'] = 0
-            else:
-                rman_node['filter'] = 1
-
-            # mode
-            mode = 'periodic'
-            if cycles_node.extension == 'REPEAT':
-                mode = 'periodic'
-            elif cycles_node.extension == 'EXTEND':
-                mode = 'clamp'
-            elif cycles_node.extension == 'CLAMP':
-                mode = 'black'
-
-            txfile.params.s_mode = mode
-            txfile.params.t_mode = mode
-            txfile.delete_texture_files()
-            txfile.build_texture_dict()   
-
-            texture_utils.get_txmanager().txmake_all(blocking=False)         
+            texture_utils.update_texture(rman_node, ob=__CURRENT_MATERIAL__)
 
     # can't link a vector to a manifold :(
     # if cycles_node.inputs['Vector'].is_linked:

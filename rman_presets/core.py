@@ -19,7 +19,6 @@ from ..rfb_utils.property_utils import __GAINS_TO_ENABLE__, __LOBES_ENABLE_PARAM
 from ..rfb_logger import rfb_log
 from ..rman_bl_nodes import __BL_NODES_MAP__, __RMAN_NODE_TYPES__
 from ..rman_constants import RMAN_STYLIZED_FILTERS, RFB_FLOAT3, CYCLES_NODE_MAP, RMAN_SUPPORTED_VERSION_STRING
-from ..rman_constants import RFB_ASSET_VERSION_KEY, RFB_ASSET_VERSION, BLENDER_VERSION_MAJOR, BLENDER_VERSION_MINOR
 from ..rfb_utils.shadergraph_utils import RmanConvertNode
 
 import rman_utils.rman_assets.lib as ral
@@ -153,9 +152,6 @@ class BlenderHostPrefs(ral.HostPrefs):
         self.blender_material = None
         self.bl_world = None
         self.progress = BlenderProgress()
-
-        self.current_asset = None
-        self.import_displayfilters = False
 
     def getHostPref(self, prefName, defaultValue): # pylint: disable=unused-argument
         if prefName == 'rpbUserLibraries':
@@ -703,21 +699,6 @@ def export_light_rig(obs, Asset):
                         externalosl=False)
 
         mtx = ob.matrix_world
-
-        # Make sure we export the light as Y-up
-        if nodeType in ['PxrDomeLight', 'PxrEnvDayLight']:
-            # for dome and envdaylight, flip the Z and Y rotation axes
-            # and ignore scale and translations
-            euler = mtx.to_euler('XYZ')
-            tmp = euler.y
-            euler.y = euler.z
-            euler.z = tmp
-            mtx = mathutils.Matrix.Identity(4) @ euler.to_matrix().to_4x4()            
-        else:
-            # for other lights, rotate on the X-axis
-            zup_to_yup = mathutils.Matrix.Rotation(radians(-90.0), 4, 'X')
-            mtx = zup_to_yup @ mtx
-
         floatVals = list()
         floatVals = transform_utils.convert_matrix(mtx)
         Asset.addNodeTransform(nodeName, floatVals )
@@ -972,7 +953,7 @@ def setParams(Asset, node, paramsList):
             # always set the array length
 
             # try to get array length
-            rman_type = ptype.split('[')[0].strip()
+            rman_type = ptype.split('[')[0]
             array_len = ptype.split('[')[1].split(']')[0]
             if array_len == '':
                 continue
@@ -989,27 +970,14 @@ def setParams(Asset, node, paramsList):
                 elem_type = 'int'
 
             for i in range(array_len):
-                if BLENDER_VERSION_MAJOR <=3 and BLENDER_VERSION_MINOR < 2:
-                    override = {'node': node}           
-                    bpy.ops.renderman.add_remove_array_elem(override,
+                override = {'node': node}           
+                bpy.ops.renderman.add_remove_array_elem(override,
                                                         'EXEC_DEFAULT', 
                                                         action='ADD',
                                                         param_name=pname,
                                                         collection=coll_nm,
                                                         collection_index=coll_idx_nm,
                                                         elem_type=elem_type)            
-
-                else:
-                    context_override = bpy.context.copy()
-                    context_override["node"] = node
-                    with bpy.context.temp_override(**context_override):
-                        bpy.ops.renderman.add_remove_array_elem(
-                                                                'EXEC_DEFAULT', 
-                                                                action='ADD',
-                                                                param_name=pname,
-                                                                collection=coll_nm,
-                                                                collection_index=coll_idx_nm,
-                                                                elem_type=elem_type)            
 
             pval = param.value()
             if pval is None or pval == []:
@@ -1061,12 +1029,7 @@ def setParams(Asset, node, paramsList):
                     depfile = Asset.getDependencyPath(pname, pval)
                     if depfile:
                         pval = depfile
-                try:
-                    setattr(node, pname, pval)
-                except:
-                    rfb_log().error('setParams FAILED: %s  ptype: %s  pval: %s' %
-                                (pname, ptype, repr(pval)))
-
+                setattr(node, pname, pval)
             elif ptype in float3:
                 try:
                    setattr(node, pname, pval)
@@ -1081,12 +1044,7 @@ def setParams(Asset, node, paramsList):
                         setattr(node, pname, pval)
                 except:
                     if type(getattr(node, pname)) == bpy.types.EnumProperty:
-                        try:
-                            setattr(node, pname, str(pval))
-                        except:
-                            rfb_log().error('setParams FAILED: %s  ptype: %s  pval: %s' %
-                                (pname, ptype, repr(pval)))
-
+                        setattr(node, pname, str(pval))                   
 
     # if this is a PxrSurface, turn on all of the enable gains.
     if hasattr(node, 'plugin_name') and node.plugin_name in ['PxrLayer', 'PxrSurface']:
@@ -1197,17 +1155,6 @@ def import_light_rig(Asset):
     portallight_nodes = dict()
 
     curr_x = 250
-    try:
-        cdata = Asset._assetData['compatibility']
-        asset_version = Asset.getMetadata(RFB_ASSET_VERSION_KEY)
-        do_rotate = True
-        if asset_version is None and cdata['host']['name'] == 'Blender':
-            # version 1.0 of light rigs from Blender doesn't need the Y-up to Z-up rotation
-            do_rotate = False
-    except Exception as e:
-        rfb_log().error("Error determining compatibility: %s" % e)
-
-
     for node in Asset.nodeList():
         nodeId = node.name()
         nodeType = node.type()
@@ -1233,10 +1180,7 @@ def import_light_rig(Asset):
         elif nodeClass == 'lightfilter':
             bpy.ops.object.rman_add_light_filter(rman_lightfilter_name=nodeType, add_to_selected=False)
 
-        try:
-            light = bpy.context.active_object
-        except:
-            light = bpy.context.view_layer.objects.active
+        light = bpy.context.active_object
         nt = light.data.node_tree
 
         light.name = nodeId
@@ -1271,21 +1215,25 @@ def import_light_rig(Asset):
 
                 # rotation
                 light.rotation_euler = (radians(vals[3]), radians(vals[4]), radians(vals[5]))
-                
-        if do_rotate:     
-            # we need to rotate the lights to Z-up
-            if nodeType in ['PxrDomeLight', 'PxrEnvDayLight']:
-                # for dome and envdaylight, flip the Y and Z rotation axes
-                # and ignore scale and translations
-                euler = light.matrix_world.to_euler('XYZ')
-                tmp = euler.y
-                euler.y = euler.z
-                euler.z = tmp
-                light.matrix_world = mathutils.Matrix.Identity(4) @ euler.to_matrix().to_4x4()
-            else:                    
-                # for other lights, rotate on the X-axis
-                yup_to_zup = mathutils.Matrix.Rotation(radians(90.0), 4, 'X')
-                light.matrix_world = yup_to_zup @ light.matrix_world
+
+        try:
+            cdata = Asset._assetData['compatibility']
+            if cdata['host']['name'] != 'Blender':            
+                if nodeType not in ['PxrDomeLight', 'PxrEnvDayLight']:
+                    # assume that if a lightrig did not come from Blender,
+                    # we need convert from Y-up to Z-up
+                    yup_to_zup = mathutils.Matrix.Rotation(radians(90.0), 4, 'X')
+                    light.matrix_world = yup_to_zup @ light.matrix_world
+                else:
+                    # for dome and envdaylight, flip the Y and Z rotation axes
+                    # and ignore scale and translations
+                    euler = light.matrix_world.to_euler('XYZ')
+                    tmp = euler.y
+                    euler.y = euler.z
+                    euler.z = tmp
+                    light.matrix_world = mathutils.Matrix.Identity(4) @ euler.to_matrix().to_4x4()
+        except:
+            pass   
 
         if bpy.context.view_layer.objects.active:
             bpy.context.view_layer.objects.active.select_set(False)                 
@@ -1413,17 +1361,12 @@ def create_displayfilter_nodes(Asset):
             has_stylized = True
 
 def import_asset(Asset, assignToSelected):
-    hostPrefs = get_host_prefs()
-    hostPrefs.current_asset = Asset
-
     assetType = Asset.type()
 
     if assetType == "nodeGraph":
         mat = None
         if Asset.displayFilterList():
-            bpy.ops.renderman.rman_import_displayfilters_dlg('EXEC_DEFAULT')
-            if hostPrefs.import_displayfilters:
-                create_displayfilter_nodes(Asset)
+            create_displayfilter_nodes(Asset)
         if Asset.nodeList():
             path = os.path.dirname(Asset.path())
             paths = path.split('/')
@@ -1517,9 +1460,6 @@ def export_asset(nodes, atype, infodict, category, cfg, renderPreview='std',
         if k == 'label':
             continue
         Asset.addMetadata(k, v)
-
-    # add version
-    Asset.addMetadata(RFB_ASSET_VERSION_KEY, RFB_ASSET_VERSION)
 
     # Compatibility data
     # This will help other application decide if they can use this asset.

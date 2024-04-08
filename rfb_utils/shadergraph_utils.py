@@ -3,14 +3,7 @@ from . import filepath_utils
 from . import string_utils
 from . import object_utils
 from .prefs_utils import get_pref
-from ..rman_constants import (
-    RMAN_STYLIZED_FILTERS, 
-    RMAN_STYLIZED_PATTERNS, 
-    RMAN_UTILITY_PATTERN_NAMES, 
-    RFB_FLOAT3,
-    BLENDER_41,
-    RFB_LAMA_NODES
-)
+from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERNS, RMAN_UTILITY_PATTERN_NAMES, RFB_FLOAT3
 import math
 import bpy
 
@@ -22,36 +15,15 @@ class BlNodeInfo:
 
 
 class RmanConvertNode:
-    def __init__(self, node_type, from_node, from_socket, to_node, to_socket):
+    def __init__(self, node_type, from_node, from_socket):
         self.node_type = node_type
         self.from_node = from_node
         self.from_socket = from_socket
-        self.to_node = to_node
-        self.to_socket = to_socket
 
     def __eq__(self, other):
         if type(other) != RmanConvertNode:
             return False
-        return (self.node_type == other.node_type and self.from_node == other.from_node and self.from_socket == other.from_socket and self.to_node == other.to_node and self.to_socket == other.to_socket)
-    
-def find_blimage_nodes(nt):
-    '''
-    Find all selected Blender/Cycles image nodes in a given node tree.
-
-    Args:
-    nt (bpy.types.NodeTree) - Node tree to search
-
-    Returns:
-    (list) - a list of ShaderNodeTexImage nodes.
-
-    '''
-    nodes = []
-    for n in nt.nodes:
-        node_type = n.bl_idname
-        if n.select and node_type == 'ShaderNodeTexImage':
-            nodes.append(n)
-
-    return nodes
+        return (self.node_type == other.node_type and self.from_node == other.from_node and self.from_socket == other.from_socket)
 
 def is_renderman_nodetree(material):
     return find_node(material, 'RendermanOutputNode')
@@ -449,11 +421,11 @@ def gather_nodes(node):
             # if this is a float->float3 type or float3->float connections, insert
             # either PxrToFloat3 or PxrToFloat conversion nodes         
             if is_socket_float_type(link.from_socket) and is_socket_float3_type(socket):
-                convert_node = RmanConvertNode('PxrToFloat3', link.from_node, link.from_socket, link.to_node, link.to_socket)
+                convert_node = RmanConvertNode('PxrToFloat3', link.from_node, link.from_socket)
                 if convert_node not in nodes:
                     nodes.append(convert_node)
             elif is_socket_float3_type(link.from_socket) and is_socket_float_type(socket):
-                convert_node = RmanConvertNode('PxrToFloat', link.from_node, link.from_socket, link.to_node, link.to_socket)
+                convert_node = RmanConvertNode('PxrToFloat', link.from_node, link.from_socket)
                 if convert_node not in nodes:
                     nodes.append(convert_node)
 
@@ -929,17 +901,6 @@ def has_stylized_pattern_node(ob, node=None):
 
     return False
 
-def check_if_connected(srcNode, dstNode):
-    found = False
-    for socket in srcNode.outputs:
-        if socket.is_linked:
-            for link in socket.links:
-                if link.to_node == dstNode:
-                    found = True
-                else:
-                    found = found or check_if_connected(link.to_node, dstNode)
-    return found
-
 def hide_cycles_nodes(id):
     cycles_output_node = None
     if isinstance(id, bpy.types.Material):
@@ -963,34 +924,16 @@ def create_bxdf(bxdf):
     hide_cycles_nodes(mat)    
 
     output = nt.nodes.new('RendermanOutputNode')
+    default = nt.nodes.new('%sBxdfNode' % bxdf)
+    default.location = output.location
+    default.location[0] -= 300
+    nt.links.new(default.outputs[0], output.inputs[0])
+    output.inputs[1].hide = True
+    output.inputs[3].hide = True  
+    default.update_mat(mat)    
 
-    if bxdf in RFB_LAMA_NODES:
-        # This is a LaMa node. Automatically create
-        # a LamaSurface node.
-        srf = nt.nodes.new('LamaSurfaceBxdfNode')
-        srf.location = srf.location
-        srf.location[0] -= 300
-        nt.links.new(srf.outputs[0], output.inputs[0])
-        output.inputs[1].hide = True
-        output.inputs[3].hide = True
-
-        lama_node = nt.nodes.new('%sBxdfNode' % bxdf)
-        lama_node.location = srf.location
-        lama_node.location[0] -= 300
-
-        nt.links.new(lama_node.outputs[0], srf.inputs['materialFront'])
-        lama_node.update_mat(mat)
-    else:
-        default = nt.nodes.new('%sBxdfNode' % bxdf)
-        default.location = output.location
-        default.location[0] -= 300
-        nt.links.new(default.outputs[0], output.inputs[0])
-        output.inputs[1].hide = True
-        output.inputs[3].hide = True  
-        default.update_mat(mat)    
-
-        if bxdf == 'PxrLayerSurface':
-            create_pxrlayer_nodes(nt, default)   
+    if bxdf == 'PxrLayerSurface':
+        create_pxrlayer_nodes(nt, default)   
 
     return mat 
 

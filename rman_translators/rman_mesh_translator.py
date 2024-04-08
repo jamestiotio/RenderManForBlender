@@ -6,7 +6,6 @@ from ..rfb_utils import string_utils
 from ..rfb_utils import property_utils
 from ..rfb_utils import scenegraph_utils
 from ..rfb_logger import rfb_log
-from ..rman_constants import BLENDER_41
 
 import bpy
 import math
@@ -138,26 +137,19 @@ def _get_material_ids(ob, geo):
     material_ids = fast_material_ids.tolist()
     return material_ids
 
-def _export_reference_pose(ob, rman_sg_mesh, rm, rixparams):
+def _export_reference_pose(ob, rm, rixparams, vertex_detail):
     rman__Pref = []
     rman__WPref = []
     rman__Nref = []
     rman__WNref = []
-
-    vertex_detail = rman_sg_mesh.npoints 
-    facevarying_detail = rman_sg_mesh.nverts 
-    uniform_detail = rman_sg_mesh.npolys
-
     for rp in rm.reference_pose:
         if rp.has_Pref:
             rman__Pref.append( rp.rman__Pref)
         if rp.has_WPref:
             rman__WPref.append( rp.rman__WPref)
-
-    for rp in rm.reference_pose_normals:
         if rp.has_Nref:
             rman__Nref.append( rp.rman__Nref)
-        if rp.has_WNref:
+        if rp.has_WPref:
             rman__WNref.append( rp.rman__WNref)
 
     if rman__Pref:
@@ -175,23 +167,14 @@ def _export_reference_pose(ob, rman_sg_mesh, rm, rixparams):
     if rman__Nref:
         if len(rman__Nref) == vertex_detail:
             rixparams.SetNormalDetail('__Nref', rman__Nref, 'vertex')
-        elif len(rman__Nref) == facevarying_detail:
-            rixparams.SetNormalDetail('__Nref', rman__Nref, 'facevarying')
-        elif len(rman__Nref) == uniform_detail:
-            rixparams.SetNormalDetail('__Nref', rman__Nref, 'uniform')            
         else:
             rfb_log().error("Number of Nref primvars do not match. Please re-freeze the reference position.")
         
     if rman__WNref:
         if len(rman__WNref) == vertex_detail:
-            rixparams.SetNormalDetail('__Nref', rman__Nref, 'vertex')
-        elif len(rman__WNref) == facevarying_detail:
-            rixparams.SetNormalDetail('__WNref', rman__WNref, 'facevarying')
-        elif len(rman__WNref) == uniform_detail:
-            rixparams.SetNormalDetail('__WNref', rman__WNref, 'uniform')            
+            rixparams.SetNormalDetail('__WNref', rman__WNref, 'vertex')
         else:
             rfb_log().error("Number of WNref primvars do not match. Please re-freeze the reference position.")
-            print("%d vs %d vs %d" % (len(rman__Nref), vertex_detail, facevarying_detail))
 
 def export_tangents(ob, geo, rixparams, uvmap="", name=""):
     # also export the tangent and bitangent vectors
@@ -226,6 +209,7 @@ def _get_primvars_(ob, rman_sg_mesh, geo, rixparams):
     # when a geometry node is active...
     rm = ob.original.data.renderman
 
+    vertex_detail = rman_sg_mesh.npoints 
     facevarying_detail = rman_sg_mesh.nverts 
 
     if rm.export_default_uv:
@@ -244,7 +228,7 @@ def _get_primvars_(ob, rman_sg_mesh, geo, rixparams):
 
     # reference pose
     if hasattr(rm, 'reference_pose'):
-        _export_reference_pose(ob, rman_sg_mesh, rm, rixparams)
+        _export_reference_pose(ob, rm, rixparams, vertex_detail)
     
     # custom prim vars
     for p in rm.prim_vars:
@@ -296,11 +280,7 @@ class RmanMeshTranslator(RmanTranslator):
         # get creases
         edges_len = len(mesh.edges)
         creases = np.zeros(edges_len, dtype=np.float32)
-        if BLENDER_41:
-            if mesh.edge_creases:
-                mesh.edge_creases.data.foreach_get('value', creases)
-        else:
-            mesh.edges.foreach_get('crease', creases)
+        mesh.edges.foreach_get('crease', creases)
         if (creases > 0.0).any():
             # we have edges where their crease is > 0.0
             # grab only those edges
@@ -321,9 +301,7 @@ class RmanMeshTranslator(RmanTranslator):
             intargs.extend(crease_edges.flatten().tolist())
             floatargs.extend(creases.tolist())   
 
-        '''
-        # Blender 4.0 removed face maps, also adding holes
-        # in subdivs won't work in XPU
+
         holes_facemap = getattr(rm, 'rman_holesFaceMap', '')
         if holes_facemap != '' and holes_facemap in ob.face_maps:
             # use this facemap for face edit holes
@@ -347,7 +325,6 @@ class RmanMeshTranslator(RmanTranslator):
                 stringargs.extend(['hole'] * num_holes)
 
             bm.free()
-        '''
 
         primvar.SetStringArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtags, tags, len(tags))
         primvar.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtagnargs, nargs, len(nargs))
@@ -357,9 +334,9 @@ class RmanMeshTranslator(RmanTranslator):
 
     def export(self, ob, db_name):
         
-        sg_node = self.rman_scene.sg_scene.CreateGroup('')
+        sg_node = self.rman_scene.sg_scene.CreateGroup(db_name)
         rman_sg_mesh = RmanSgMesh(self.rman_scene, sg_node, db_name)
-        rman_sg_mesh.sg_mesh = self.rman_scene.sg_scene.CreateMesh(db_name)
+        rman_sg_mesh.sg_mesh = self.rman_scene.sg_scene.CreateMesh('')
         rman_sg_mesh.sg_node.AddChild(rman_sg_mesh.sg_mesh)
 
         if self.rman_scene.do_motion_blur:
@@ -404,7 +381,7 @@ class RmanMeshTranslator(RmanTranslator):
 
     def update_primvar(self, ob, rman_sg_mesh, prop_name):
         mesh = ob.to_mesh()
-        primvars = rman_sg_mesh.sg_mesh.GetPrimVars()
+        primvars = rman_sg_mesh.sg_node.GetPrimVars()
         if prop_name in mesh.renderman.prop_meta:
             rm = mesh.renderman
             meta = rm.prop_meta[prop_name]
@@ -412,11 +389,11 @@ class RmanMeshTranslator(RmanTranslator):
             property_utils.set_primvar_bl_prop(primvars, prop_name, meta, rm, inherit_node=rm_scene)        
         else:
             super().update_object_primvar(ob, primvars, prop_name)
-        rman_sg_mesh.sg_mesh.SetPrimVars(primvars)
+        rman_sg_mesh.sg_node.SetPrimVars(primvars)
         ob.to_mesh_clear()
 
     def update(self, ob, rman_sg_mesh, input_mesh=None, sg_node=None):
-        rm = ob.original.data.renderman
+        rm = ob.renderman
         mesh = input_mesh
         if not mesh:
             mesh = ob.to_mesh()
@@ -426,18 +403,10 @@ class RmanMeshTranslator(RmanTranslator):
         if not sg_node:
             sg_node = rman_sg_mesh.sg_mesh
 
-        rman_sg_mesh.is_subdiv = object_utils.is_subdmesh(ob.original)
-        use_subdiv_modifer = (rman_sg_mesh.is_subdiv and rm.rman_subdiv_scheme == "none")
-        use_smooth_normals = getattr(rm, 'rman_smoothnormals', False)
+        rman_sg_mesh.is_subdiv = object_utils.is_subdmesh(ob)
+        use_smooth_normals = getattr(ob.data.renderman, 'rman_smoothnormals', False)
         get_normals = (rman_sg_mesh.is_subdiv == 0 and not use_smooth_normals)
-        if use_subdiv_modifer:
-            # always get the normals when we're using the subdiv modifier
-            get_normals = True
-        rman_mesh = mesh_utils.get_mesh(mesh, get_normals=get_normals)
-        nverts = rman_mesh.nverts
-        verts = rman_mesh.verts
-        P = rman_mesh.P
-        N = rman_mesh.N
+        (nverts, verts, P, N) = mesh_utils.get_mesh(mesh, get_normals=get_normals)
         
         # if this is empty continue:
         if nverts == []:
@@ -481,50 +450,39 @@ class RmanMeshTranslator(RmanTranslator):
 
         if rman_sg_mesh.is_subdiv:
             creases = self._get_subd_tags_(ob, mesh, primvar)
-            if use_subdiv_modifer:
+            if ob.data.renderman.rman_subdiv_scheme == 'none':
                 # we were tagged as a subdiv by a modifier
-                # use bilinear
-                sg_node.SetScheme(self.rman_scene.rman.Tokens.Rix.k_bilinear) 
+                sg_node.SetScheme(self.rman_scene.rman.Tokens.Rix.k_catmullclark) 
             else:
-                sg_node.SetScheme(rm.rman_subdiv_scheme) 
+                sg_node.SetScheme(ob.data.renderman.rman_subdiv_scheme) 
 
         else:
             sg_node.SetScheme(None)
-
-        if not rman_sg_mesh.is_subdiv or use_subdiv_modifer:
             if N:
                 if len(N) == numnverts:
                     primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "facevarying")         
                 else:
                     primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "uniform")         
-        subdiv_scheme = getattr(rm, 'rman_subdiv_scheme', 'none')
+        subdiv_scheme = getattr(ob.data.renderman, 'rman_subdiv_scheme', 'none')
         rman_sg_mesh.subdiv_scheme = subdiv_scheme
 
         super().export_object_primvars(ob, primvar)
 
         if rman_sg_mesh.is_multi_material:
             material_ids = _get_material_ids(ob, mesh)
-            i = 1
             for mat_id, faces in \
                 _get_mats_faces_(nverts, material_ids).items():
 
-                # If the face has a mat index that is higher than the number of
-                # material slots, use the last material. This is what
-                # Eevee/Cycles does.
-                if mat_id >= len(ob.data.materials):
-                    mat = ob.data.materials[-1]
-                else:
-                    mat = ob.data.materials[mat_id]
+                mat = ob.data.materials[mat_id]
                 if not mat:
                     continue
                 sg_material = self.rman_scene.rman_materials.get(mat.original, None)
 
                 if mat_id == 0:
                     primvar.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_shade_faceset, faces, len(faces))
-                    scenegraph_utils.set_material(sg_node, sg_material.sg_node, sg_material, mat=mat, ob=ob)
+                    scenegraph_utils.set_material(sg_node, sg_material.sg_node)
                 else:                
-                    sg_sub_mesh =  self.rman_scene.sg_scene.CreateMesh("%s-%d" % (rman_sg_mesh.db_name, i))
-                    i += 1
+                    sg_sub_mesh =  self.rman_scene.sg_scene.CreateMesh("")
                     sg_sub_mesh.Define( npolys, npoints, numnverts )                   
                     if rman_sg_mesh.is_subdiv:
                         sg_sub_mesh.SetScheme(self.rman_scene.rman.Tokens.Rix.k_catmullclark)
@@ -534,7 +492,7 @@ class RmanMeshTranslator(RmanTranslator):
                     pvars.Inherit(primvar)
                     pvars.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_shade_faceset, faces, len(faces))                    
                     sg_sub_mesh.SetPrimVars(pvars)
-                    scenegraph_utils.set_material(sg_sub_mesh, sg_material.sg_node, sg_material, mat=mat, ob=ob)
+                    scenegraph_utils.set_material(sg_sub_mesh, sg_material.sg_node)
                     sg_node.AddChild(sg_sub_mesh)
                     rman_sg_mesh.multi_material_children.append(sg_sub_mesh)
         else:

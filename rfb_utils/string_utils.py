@@ -195,7 +195,7 @@ def update_blender_tokens_cb(bl_scene):
     from ..rman_config import __RFB_CONFIG_DICT__ as rfb_config
 
     scene = bl_scene
-    if not scene or not isinstance(scene, bpy.types.Scene):
+    if not scene:
         scene = bpy.context.scene
 
     global __SCENE_STRING_CONVERTER__
@@ -241,10 +241,7 @@ def convert_val(v, type_hint=None):
 
     # float, int
     if type_hint == 'color':
-        if isinstance(v, float) or isinstance(v, int):
-            converted_val = (float(v), float(v), float(v))
-        else:
-            converted_val = list(v)[:3]
+        converted_val = list(v)[:3]
 
     elif type(v) in (mathutils.Vector, mathutils.Color) or\
             v.__class__.__name__ == 'bpy_prop_array'\

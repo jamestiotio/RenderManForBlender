@@ -58,21 +58,10 @@ def assetid_update_func(self, context, param_name):
 
                 node[param_colorspace] = val
             except AttributeError:
-                pass              
-
-    if hasattr(node, 'id_data'):        
-        if category in ['projection']:
-            # if this is from a projection node, we need to tell
-            # the camera to update
-            users = context.blend_data.user_map(subset={node.id_data})
-            for o in users[node.id_data]:
-                o.update_tag()    
-        else:    
-            node.id_data.update_tag()
-    elif isinstance(ob, bpy.types.Material):
+                pass                
+    
+    if isinstance(ob, bpy.types.Material):
         node.update_mat(ob)
-    elif isinstance(ob, bpy.types.World):
-        ob.update_tag()
     elif isinstance(ob, bpy.types.Object):
         ob.update_tag(refresh={'DATA'})
 
@@ -102,9 +91,7 @@ def update_func_with_inputs(self, context):
     # check if this prop is set on an input
     node = self.node if hasattr(self, 'node') else self
 
-    if hasattr(node, 'id_data'):
-        node.id_data.update_tag()
-    elif context and hasattr(context, 'active_object'):
+    if context and hasattr(context, 'active_object'):
         if context.active_object:
             if context.active_object.type in ['CAMERA', 'LIGHT']:
                 context.active_object.update_tag(refresh={'DATA'})
@@ -148,9 +135,8 @@ def update_array_size_func(self, context):
 
     # check if this prop is set on an input
     node = self.node if hasattr(self, 'node') else self
-    if hasattr(node, 'id_data'):
-        node.id_data.update_tag()
-    elif context and hasattr(context, 'active_object'):
+
+    if context and hasattr(context, 'active_object'):
         if context.active_object:
             if context.active_object.type in ['CAMERA', 'LIGHT']:
                 context.active_object.update_tag(refresh={'DATA'})
@@ -163,31 +149,14 @@ def update_array_size_func(self, context):
         mat = getattr(context.space_data, 'id', None)
         if mat:
             node.update_mat(mat)
-
-    links = dict()
     
     # first remove all sockets/inputs from the node related to arrays
-    ui_structs = getattr(node, 'ui_structs', dict())    
     for prop_name,meta in node.prop_meta.items():
-        is_ui_struct = meta.get('is_ui_struct', False)
         renderman_type = meta.get('renderman_type', '')
-        if is_ui_struct:
-            ui_struct_members = ui_structs[prop_name]
-            for member in ui_struct_members:
-                sub_prop_names = getattr(node, member)                  
-                for nm in sub_prop_names:
-                    if nm in node.inputs.keys():
-                        socket = node.inputs[nm]
-                        if socket.is_linked:
-                            links[nm] = {"from_node": socket.links[0].from_node, "from_socket": socket.links[0].from_socket}
-                        node.inputs.remove(node.inputs[nm])          
-        elif renderman_type == 'array':
+        if renderman_type == 'array':
             sub_prop_names = getattr(node, prop_name)
             for nm in sub_prop_names:
                 if nm in node.inputs.keys():
-                    socket = node.inputs[nm]
-                    if socket.is_linked:
-                        links[nm] = {"from_node": socket.links[0].from_node, "from_socket": socket.links[0].from_socket}                    
                     node.inputs.remove(node.inputs[nm])
 
     # now re-add all sockets/inputs
@@ -202,29 +171,13 @@ def update_array_size_func(self, context):
         for input_name, socket in node.inputs.items():
             if 'hidden' in prop_meta[input_name]:
                 socket.hide = prop_meta[input_name]['hidden']    
-
-    # reconnect any links that were linked before:
-    for nm, link in links.items():
-        if nm in node.inputs:
-            socket = node.inputs[nm]
-            if not socket.hide:
-                node.id_data.links.new(link['from_socket'], socket)
+           
 
 def update_func(self, context):
     # check if this prop is set on an input
     node = self.node if hasattr(self, 'node') else self
 
-    if hasattr(node, 'id_data'):
-        node_type = getattr(node, 'renderman_node_type', '')
-        if node_type in ['projection']:
-            # if this is from a projection node, we need to tell
-            # the camera to update
-            users = context.blend_data.user_map(subset={node.id_data})
-            for o in users[node.id_data]:
-                o.update_tag()
-        else:
-            node.id_data.update_tag()
-    elif context and hasattr(context, 'active_object'):
+    if context and hasattr(context, 'active_object'):
         if context.active_object:
             if context.active_object.type in ['CAMERA', 'LIGHT']:
                 context.active_object.update_tag(refresh={'DATA'})
@@ -276,17 +229,14 @@ def update_riattr_func(self, s, context):
     ob = None
     if not hasattr(context, 'object'):
         ob = self.id_data
-        if ob is None:
-            return
+    if ob is None:
+        return
     scenegraph_utils.update_sg_node_riattr(s, context, bl_object=ob)    
 
 def update_primvar_func(self, s, context):
     ob = None
     if not hasattr(context, 'object'):
         ob = self.id_data    
-        if ob is None:
-            return
+    if ob is None:
+        return
     scenegraph_utils.update_sg_node_primvar(s, context, bl_object=ob)      
-
-def update_displays_func(self, context):
-    scenegraph_utils.update_sg_displays(context)

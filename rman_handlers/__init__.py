@@ -3,8 +3,6 @@ from ..rfb_utils import texture_utils
 from ..rfb_utils import string_utils
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import upgrade_utils
-from ..rfb_utils.envconfig_utils import envconfig
-from ..rman_constants import RMAN_FAKE_NODEGROUP
 from bpy.app.handlers import persistent
 import bpy
 import os
@@ -20,11 +18,6 @@ if sys.platform == ("win32"):
 else:
     __BL_TMP_DIR__ = '/tmp'
 
-def set_qn_env_vars(bl_scene):
-    if not bl_scene or not isinstance(bl_scene, bpy.types.Scene):
-        bl_scene = bpy.context.scene
-    envconfig().set_qn_env_vars(bl_scene)
-
 @persistent
 def rman_load_post(bl_scene):
     from ..rman_ui import rman_ui_light_handlers
@@ -35,7 +28,6 @@ def rman_load_post(bl_scene):
     texture_utils.txmanager_load_cb(bl_scene)
     upgrade_utils.upgrade_scene(bl_scene)
     scene_utils.add_global_vol_aggregate()
-    set_qn_env_vars(bl_scene)
 
 @persistent
 def rman_save_pre(bl_scene):
@@ -53,27 +45,7 @@ def frame_change_post(bl_scene):
     string_utils.update_frame_token(bl_scene.frame_current)        
 
 @persistent
-def despgraph_post_handler(bl_scene, depsgraph):    
-    if len(depsgraph.updates) < 1 and depsgraph.id_type_updated('NODETREE'):    
-        # Updates is empty. Assume this is a change to our ramp
-        # nodes in one of our fake nodegroup
-        # Since we don't know which ramp was updated, just call update_tag
-        # on all of them
-        rfb_log().debug("DepsgraphUpdates is empty. Assume this is a ramp edit.")
-        for ng in bpy.data.node_groups:
-            if not ng.name.startswith(RMAN_FAKE_NODEGROUP):
-                continue
-            users = bpy.context.blend_data.user_map(subset={ng})
-            for o in users[ng]:
-                if isinstance(o, bpy.types.Material):
-                    o.node_tree.update_tag()
-                elif isinstance(o, bpy.types.Light):
-                    o.node_tree.update_tag()
-                elif isinstance(o, bpy.types.World):
-                    o.update_tag()
-                elif isinstance(o, bpy.types.Camera):
-                    o.update_tag()
-
+def despgraph_post_handler(bl_scene, depsgraph):        
     for update in depsgraph.updates:
         texture_utils.depsgraph_handler(update, depsgraph)
 

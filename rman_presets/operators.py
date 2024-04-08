@@ -180,14 +180,12 @@ class PRMAN_OT_edit_library_info(bpy.types.Operator):
 
 class PRMAN_OT_load_asset_to_scene(bpy.types.Operator):
     bl_idname = "renderman.load_asset_to_scene"
-    bl_label = "Import Preset to Scene"
-    bl_description = "Import a preset to scene"
+    bl_label = "Load Asset to Scene"
+    bl_description = "Load the Asset to scene"
 
     preset_path: StringProperty(default='')
     assign: BoolProperty(default=False)
     preset_description: StringProperty(default='')
-    import_displayfilters: BoolProperty(default=True, name="Import Display Filters?", 
-                                        description="This preset also includes display filters. Uncheck this box if you don't want them to also be imported.")
 
     @classmethod
     def description(cls, context, properties):    
@@ -195,38 +193,19 @@ class PRMAN_OT_load_asset_to_scene(bpy.types.Operator):
         if properties.preset_description:
             info = properties.preset_description
         return info    
-    
-    def execute(self, context):
-        from . import rmanAssetsBlender
 
-        hostPrefs = rab.get_host_prefs()
-        hostPrefs.import_displayfilters = self.properties.import_displayfilters
-        mat = rmanAssetsBlender.bl_import_asset(hostPrefs.current_asset)
+    def invoke(self, context, event):
+        from . import rmanAssetsBlender
+        mat = rmanAssetsBlender.bl_import_asset(self.properties.preset_path)
         if self.properties.assign and mat and type(mat) == bpy.types.Material:
             for ob in context.selected_objects:
                 if ob.type == 'EMPTY':
                     ob.renderman.rman_material_override = mat
                     ob.update_tag(refresh={'OBJECT'})
                 else:
-                    ob.active_material = mat   
+                    ob.active_material = mat
 
-        return {'FINISHED'} 
-
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(self, 'import_displayfilters')
-
-    def invoke(self, context, event):   
-        from . import rmanAssetsBlender
-        Asset = rmanAssetsBlender.bl_load_asset(self.properties.preset_path)
-        if Asset is None:
-            self.report({'ERROR'}, "Cannot load asset: %s" % self.properties.preset_path)
-            return {'FINISHED'}          
-        hostPrefs = rab.get_host_prefs()
-        hostPrefs.current_asset = Asset
-        if Asset.type() == "nodeGraph" and Asset.displayFilterList():
-            return context.window_manager.invoke_props_dialog(self)
-        return self.execute(context)
+        return {'FINISHED'}
 
 class PRMAN_UL_Presets_Meta_Data_List(bpy.types.UIList):
 
@@ -282,7 +261,7 @@ class PRMAN_OT_save_asset_base(bpy.types.Operator):
     asset_type: EnumProperty(
         items=[
             ('ENV', 'ENV', ''),
-            ('LIGHTRIG', 'LIGHTRIG', ''),
+            ('LIGHRIG', 'LIGHTRIG', ''),
             ('MATERIAL', 'MATERIAL', '')
         ]
     )   

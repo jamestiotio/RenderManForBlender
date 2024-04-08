@@ -86,27 +86,19 @@ def bl_export_envmap(hostPrefs, categorypath, infodict, previewtype): # pylint: 
     return bl_export_asset(hostPrefs._nodesToExport, 'envMap', infodict, categorypath,
                         hostPrefs.cfg, previewtype)
 
-def bl_load_asset(filepath):
+def bl_import_asset(filepath):
     # early exit
     if not os.path.exists(filepath):
-        raise None
+        raise bl_pb_core.RmanAssetBlenderError("File doesn't exist: %s" % filepath)
 
     Asset = RmanAsset()
     Asset.load(filepath, localizeFilePaths=True)
-    return Asset    
-
-
-def bl_import_asset(Asset):
     assetType = Asset.type()
-
-    hostPrefs = get_host_prefs()
-    import_displayfilters = hostPrefs.import_displayfilters
-    hostPrefs.import_displayfilters = False
 
     if assetType == "nodeGraph":
         mat = None
         path = os.path.dirname(Asset.path())
-        if Asset.displayFilterList() and import_displayfilters:
+        if Asset.displayFilterList():
             bl_pb_core.create_displayfilter_nodes(Asset)
         if Asset.nodeList():
             paths = path.split('/')

@@ -17,10 +17,7 @@ class RENDERMAN_UL_UserAttributes_List(bpy.types.UIList):
         layout.label(text=item.name)
 
 class RendermanUserAttributesGroup(bpy.types.PropertyGroup):
-    name: StringProperty(name="Name", default="", description="The name of your attribute. You can then look up these attributes in your shading network, using PxrAttribute. The attribute would be of the form 'namespace:name'. For example, if name is 'foo' and namespace is left blank, the name you use for PxrAttribute would be 'user:foo'.")
-    namespace: StringProperty(name="Namespace", default="",
-                              description="The namespace for your attribute. If left blank, we put these in the user namespace.  "
-                              )
+    name: StringProperty(name="Name", default="")
     type: EnumProperty(name="Type",
         items=[
               ('float', 'float', ''),
@@ -51,14 +48,9 @@ class RendermanObjectSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         default=False
     )
 
-    def matrial_override_update(self, context):
-        if self.id_data:
-            self.id_data.update_tag()
-
     rman_material_override: PointerProperty(
         name='Material',
-        type=bpy.types.Material,
-        update=matrial_override_update
+        type=bpy.types.Material
     )    
 
     rman_lighting_excludesubset: CollectionProperty(

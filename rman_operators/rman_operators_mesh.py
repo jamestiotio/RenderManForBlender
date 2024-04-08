@@ -1,5 +1,4 @@
 from ..rfb_logger import rfb_log
-from ..rfb_utils import mesh_utils
 import bpy
 from bpy.props import BoolProperty
 from mathutils import Vector, Matrix
@@ -14,54 +13,37 @@ class PRMAN_OT_Renderman_mesh_reference_pose(bpy.types.Operator):
     add_Nref: BoolProperty(name='Add __Nref', default=True)
     add_WNref: BoolProperty(name='Add __WNref', default=True)
 
-    @classmethod
-    def poll(cls, context):
-        if context.engine != "PRMAN_RENDER":
-            return False        
-        if context.object is None:
-            return False
-        if context.mesh is None:
-            return False
-        return True
-
     def execute(self, context):
         mesh = context.mesh
         ob = context.object
         rm = mesh.renderman
         rm.reference_pose.clear()
-        rm.reference_pose_normals.clear()
         
         matrix_world = ob.matrix_world
-        if not self.add_Pref and not self.add_WPref and not self.add_Nref and not self.add_WNref:
-            return {'FINISHED'}
+        mesh.calc_normals_split()
+        for mv in mesh.vertices:
+            rp = rm.reference_pose.add()
+            if self.add_Pref:
+                rp.has_Pref = True
+                rp.rman__Pref = mv.co
 
-        rman_mesh = mesh_utils.get_mesh(mesh, get_normals=True)
-        if self.add_Pref or self.add_WPref:
-            for P in rman_mesh.P:
-                rp = rm.reference_pose.add()
-                if self.add_Pref:
-                    rp.has_Pref = True
-                    rp.rman__Pref = P
-
-                if self.add_WPref:
-                    rp.has_WPref = True
-                    v = Vector(P)
-                    v = matrix_world @ v
-                    rp.rman__WPref = v
-
-        if self.add_Nref or self.add_WNref:
-            for N in rman_mesh.N:
-                rp = rm.reference_pose_normals.add()
-                if self.add_Nref:
-                    rp.has_Nref = True
-                    rp.rman__Nref = N
+            if self.add_WPref:
+                rp.has_WPref = True
+                v = Vector(mv.co)
+                v = matrix_world @ v
+                rp.rman__WPref = v
+        
+            if self.add_Nref:
+                rp.has_Nref = True
+                rp.rman__Nref = mv.normal
             
-                if self.add_WNref:
-                    rp.has_WNref = True
-                    n = Vector(N)
-                    n = matrix_world @ n
-                    rp.rman__WNref = n                    
+            if self.add_WNref:
+                rp.has_WNref = True
+                n = Vector(mv.normal)
+                n = matrix_world @ n
+                rp.rman__WNref = n
 
+        mesh.free_normals_split()
         ob.update_tag(refresh={'DATA'})
         return {'FINISHED'}
 

@@ -19,7 +19,7 @@ class RmanSgNode(object):
         is_meshlight (bool) - if this object is a mesh light.
         is_hidden (bool) - whether this object is considered hidden
         is_frame_sensitive (bool) - indicates that the sg_node should be updated on frame changes
-        shared_attrs (RixSGGroup) - attributes for this object
+        shared_attrs (RtParamList) - attributes that should be shared between all instances
  
     '''
     def __init__(self, rman_scene, sg_node, db_name):
@@ -54,8 +54,8 @@ class RmanSgNode(object):
         # psys
         self.bl_psys_settings = None
 
-        # attribute scenegraph node
-        self.sg_attributes = None 
+        # attributes that should be shared with all instances
+        self.shared_attrs = rman_scene.rman.Types.ParamList()
 
     def __del__(self):
         if self.rman_scene.rman_render.rman_running and self.rman_scene.rman_render.sg_scene:
@@ -65,10 +65,7 @@ class RmanSgNode(object):
                 if isinstance(self.sg_node, self.rman_scene.rman.scenegraph.Group):
                     self.rman_scene.sg_scene.DeleteDagNode(self.sg_node)
                 elif isinstance(self.sg_node, self.rman_scene.rman.scenegraph.Material):
-                    self.rman_scene.sg_scene.DeleteMaterial(self.sg_node)                
-
-    def create_sg_attributes(self, ob):
-        self.sg_attributes = self.rman_scene.sg_scene.CreateGroup(ob.name)
+                    self.rman_scene.sg_scene.DeleteMaterial(self.sg_node)
 
     def clear_instances(self):
         if self.rman_scene.rman_render.rman_running:
