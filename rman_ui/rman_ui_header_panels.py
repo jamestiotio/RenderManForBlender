@@ -1,5 +1,5 @@
 from .. import rfb_icons
-from ..rfb_utils.shadergraph_utils import is_renderman_nodetree, find_soloable_node
+from ..rfb_utils.shadergraph_utils import is_renderman_nodetree, find_soloable_node, find_blimage_nodes
 import bpy
 
 class PRMAN_HT_DrawRenderHeaderInfo(bpy.types.Header):
@@ -50,7 +50,8 @@ class NODE_MT_renderman_node_editor_menu(bpy.types.Menu):
             return
 
         if type(context.space_data.id) == bpy.types.Material:
-            rman_output_node = is_renderman_nodetree(context.space_data.id)
+            mat = context.space_data.id
+            rman_output_node = is_renderman_nodetree(mat)
 
             if not rman_output_node:           
                 rman_icon = rfb_icons.get_icon('rman_graph') 
@@ -60,8 +61,12 @@ class NODE_MT_renderman_node_editor_menu(bpy.types.Menu):
                 rman_icon = rfb_icons.get_icon("out_PxrSurface")
                 layout.operator('node.rman_new_bxdf', text='New Bxdf', icon_value=rman_icon.icon_id).idtype = "node_editor"
                 nt = context.space_data.id.node_tree
+                layout.context_pointer_set("mat", mat)
                 layout.context_pointer_set("nodetree", nt)  
-                layout.context_pointer_set("node", rman_output_node)                  
+                layout.context_pointer_set("node", rman_output_node) 
+                if find_blimage_nodes(nt):
+                    rman_icon = rfb_icons.get_icon('rman_blender')  
+                    layout.operator('node.convert_blimage_nodes', icon_value=rman_icon.icon_id)
                 selected_node = find_soloable_node(nt)
                 if selected_node:                     
                     rman_icon = rfb_icons.get_icon('rman_solo_on')

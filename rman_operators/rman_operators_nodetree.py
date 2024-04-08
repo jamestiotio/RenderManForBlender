@@ -19,7 +19,8 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
 
     def execute(self, context):
         for mat in bpy.data.materials:
-            mat.use_nodes = True
+            if not mat.use_nodes:
+                mat.use_nodes = True            
             nt = mat.node_tree
             if shadergraph_utils.is_renderman_nodetree(mat):
                 continue
@@ -66,7 +67,8 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
         for light in bpy.data.lights:
             if light.renderman.use_renderman_node:
                 continue
-            light.use_nodes = True
+            if not light.use_nodes:
+                light.use_nodes = True
             light_type = light.type
             light.renderman.light_primary_visibility = False
             nt = light.node_tree
@@ -147,7 +149,8 @@ class SHADING_OT_convert_cycles_to_renderman_nodetree(bpy.types.Operator):
                 rm = ob.renderman
                 idblock = rm.rman_material_override            
 
-        idblock.use_nodes = True
+        if not idblock.use_nodes:
+            idblock.use_nodes = True
         nt = idblock.node_tree
 
         if idtype == 'material':
@@ -210,7 +213,8 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
         # nt = bpy.data.node_groups.new(idblock.name,
         #                              type='RendermanPatternGraph')
         #nt.use_fake_user = True
-        idblock.use_nodes = True
+        if not idblock.use_nodes:
+            idblock.use_nodes = True
         nt = idblock.node_tree
 
         if idtype == 'material':
@@ -337,7 +341,8 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                 rm = ob.renderman
                 idblock = rm.rman_material_override            
 
-        idblock.use_nodes = True
+        if not idblock.use_nodes:
+            idblock.use_nodes = True
         nt = idblock.node_tree
 
         if idtype == 'material':      
@@ -358,8 +363,8 @@ class SHADING_OT_add_integrator_nodetree(bpy.types.Operator):
     def execute(self, context):
         
         world = context.scene.world
-
-        world.use_nodes = True
+        if not world.use_nodes:
+            world.use_nodes = True
         nt = world.node_tree
        
         # world
@@ -394,7 +399,8 @@ class SHADING_OT_add_displayfilters_nodetree(bpy.types.Operator):
     def execute(self, context):
         
         world = context.scene.world
-        world.use_nodes = True
+        if not world.use_nodes:
+            world.use_nodes = True
         nt = world.node_tree
        
         world.renderman.use_renderman_node = True
@@ -433,7 +439,8 @@ class SHADING_OT_world_convert_material(bpy.types.Operator):
     def execute(self, context):
         
         world = context.scene.world
-        world.use_nodes = True
+        if not world.use_nodes:
+            world.use_nodes = True
         nt = world.node_tree
         shadergraph_utils.hide_cycles_nodes(world)
         output = nt.nodes.new('RendermanIntegratorsOutputNode')
@@ -475,7 +482,8 @@ class SHADING_OT_add_samplefilters_nodetree(bpy.types.Operator):
     def execute(self, context):
         
         world = context.scene.world
-        world.use_nodes = True
+        if not world.use_nodes:
+            world.use_nodes = True
         nt = world.node_tree
 
         world.renderman.use_renderman_node = True
@@ -514,7 +522,8 @@ class PRMAN_OT_New_bxdf(bpy.types.Operator):
         bxdf_name = self.bxdf_name
         mat = bpy.data.materials.new(bxdf_name)
         ob.active_material = mat
-        mat.use_nodes = True
+        if not mat.use_nodes:
+            mat.use_nodes = True
         nt = mat.node_tree
         shadergraph_utils.hide_cycles_nodes(mat)
         output = nt.nodes.new('RendermanOutputNode')
@@ -549,7 +558,8 @@ class PRMAN_OT_New_bxdf(bpy.types.Operator):
                             'light': context.light, 'world': context.scene.world}
             idblock = context_data[idtype]
 
-        idblock.use_nodes = True
+        if not idblock.use_nodes:
+            idblock.use_nodes = True
         nt = idblock.node_tree
 
         if idtype == 'material':      
@@ -575,7 +585,8 @@ class PRMAN_OT_New_Material_Override(bpy.types.Operator):
         bxdf_name = self.bxdf_name
         mat = bpy.data.materials.new(bxdf_name)
         ob.renderman.rman_material_override = mat
-        mat.use_nodes = True
+        if not mat.use_nodes:
+            mat.use_nodes = True
         nt = mat.node_tree
         shadergraph_utils.hide_cycles_nodes(mat)
 
@@ -629,9 +640,11 @@ class PRMAN_OT_Force_Light_Refresh(bpy.types.Operator):
     def execute(self, context):
         rr = RmanRender.get_rman_render()
         if rr.rman_is_live_rendering:
-            ob = getattr(context, "light", context.active_object)
-            if ob:
-                rr.rman_scene_sync.update_light(ob)
+            light = getattr(context, "light")
+            if light:
+                users = context.blend_data.user_map(subset={light}, value_types={'OBJECT'})
+                for ob in users[light]:
+                    rr.rman_scene_sync.update_light(ob)
 
         return {"FINISHED"}       
         
@@ -643,9 +656,11 @@ class PRMAN_OT_Force_LightFilter_Refresh(bpy.types.Operator):
     def execute(self, context):
         rr = RmanRender.get_rman_render()
         if rr.rman_is_live_rendering:
-            ob = getattr(context, "light_filter", context.active_object)
-            if ob:
-                rr.rman_scene_sync.update_light_filter(ob)
+            light_filter = getattr(context, "light_filter")
+            if light_filter:
+                users = context.blend_data.user_map(subset={light_filter}, value_types={'OBJECT'})
+                for ob in users[light_filter]:                
+                    rr.rman_scene_sync.update_light_filter(ob)
 
         return {"FINISHED"}  
 
@@ -661,14 +676,12 @@ class PRMAN_OT_Add_Projection_Nodetree(bpy.types.Operator):
     proj_name: EnumProperty(items=get_type_items, name="Projection")    
     
     def execute(self, context):
-        ob = context.object
-        if ob.type != 'CAMERA':
-            return {'FINISHED'}
+        cam = context.camera
 
-        nt = bpy.data.node_groups.new(ob.data.name, 'ShaderNodeTree')
+        nt = bpy.data.node_groups.new(cam.name, 'ShaderNodeTree')
         output = nt.nodes.new('RendermanProjectionsOutputNode')
         output.select = False
-        ob.data.renderman.rman_nodetree = nt
+        cam.renderman.rman_nodetree = nt
 
         proj_node_name = rman_bl_nodes.__BL_NODES_MAP__[self.proj_name]    
         default = nt.nodes.new(proj_node_name)
@@ -676,7 +689,7 @@ class PRMAN_OT_Add_Projection_Nodetree(bpy.types.Operator):
         default.location[0] -= 300
         default.select = False
         nt.links.new(default.outputs[0], output.inputs[0])      
-        ob.update_tag(refresh={'DATA'})  
+        cam.update_tag()  
 
         return {"FINISHED"}          
 
@@ -761,6 +774,122 @@ class PRMAN_OT_Fix_All_Ramps(bpy.types.Operator):
 
         shadergraph_utils.reload_bl_ramps(None, check_library=False)
         return {"FINISHED"}        
+    
+class PRMAN_OT_Select_Nodetree_Node(bpy.types.Operator):
+    bl_idname = "node.rman_select_nodetree_node"
+    bl_label = ""
+    bl_description = "View the connected node"
+    bl_options = {"INTERNAL"}
+
+    def execute(self, context):
+        node = context.node
+        nt = getattr(context, 'nodetree', node.id_data)
+        for n in nt.nodes:
+            n.select = False
+        node.select = True
+
+        return {"FINISHED"}    
+
+class PRMAN_OT_Select_Nodetree_Reset(bpy.types.Operator):
+    bl_idname = "node.rman_select_nodetree_reset"
+    bl_label = ""
+    bl_description = "Go back to the base node"
+    bl_options = {"INTERNAL"}
+
+    def execute(self, context):
+        node = context.node
+        nt = getattr(context, 'nodetree', node.id_data)
+        for n in nt.nodes:
+            n.select = False
+
+        return {"FINISHED"}       
+    
+class PRMAN_MT_Select_Nodetree_Downstream(bpy.types.Menu):
+    bl_label = "Select Downstream Node"
+    bl_idname = "PRMAN_MT_Select_Nodetree_Downstream"
+    bl_description = "Select a downstream node"
+
+    @classmethod
+    def poll(cls, context):
+        return context.engine == "PRMAN_RENDER"
+
+    def draw(self, context):
+        layout = self.layout
+        node = context.node
+        any_connections = False
+
+        for socket in node.outputs:
+            if socket.is_linked:
+                any_connections = True
+                link = socket.links[0]
+                to_node = link.to_node
+            
+                layout.context_pointer_set("node", to_node)
+                layout.operator_context = 'EXEC_DEFAULT'
+                op = layout.operator('node.rman_select_nodetree_node', text="%s (%s -> %s)" % (to_node.name, link.from_socket.name, link.to_socket.name))
+        if not any_connections:
+            layout.label(text="No Nodes")
+
+class PRMAN_MT_Select_Nodetree_Upstream(bpy.types.Menu):
+    bl_label = "Select Upstream Node"
+    bl_idname = "PRMAN_MT_Select_Nodetree_Upstream"
+    bl_description = "Select an upstream node"
+
+    @classmethod
+    def poll(cls, context):
+        return context.engine == "PRMAN_RENDER"
+
+    def draw(self, context):
+        layout = self.layout
+        node = context.node
+        any_connections = False
+
+        for socket in node.inputs:
+            if socket.is_linked:
+                any_connections = True
+                link = socket.links[0]
+                from_node = link.from_node
+
+                layout.context_pointer_set("node", from_node)
+                layout.operator_context = 'EXEC_DEFAULT'
+                op = layout.operator('node.rman_select_nodetree_node', text="%s (%s -> %s)" % (from_node.name, link.from_socket.name, link.to_socket.name))
+        if not any_connections:
+            layout.label(text="No Nodes")            
+class PRMAN_OT_Convert_BlImage_Nodes(bpy.types.Operator):
+    bl_idname = "node.convert_blimage_nodes"
+    bl_label = "Convert Image Nodes"
+    bl_description = "Convert all selected Blender Image Nodes to PxrTexture. Note, we do not convert any upstream nodes that are connected to the image node's Vector input socket."
+    bl_options = {"INTERNAL"}
+
+    def execute(self, context):
+        from ..rman_bl_nodes import __BL_NODES_MAP__
+        from ..rman_cycles_convert import cycles_convert
+
+        node = context.node
+        mat = context.mat
+        nt = getattr(context, 'nodetree', node.id_data)
+        nodes = shadergraph_utils.find_blimage_nodes(nt)
+        for n in nodes:
+            node_name = __BL_NODES_MAP__.get('PxrTexture', None)
+            rman_node = nt.nodes.new(node_name)
+            rman_node.location[0] = n.location[0]
+            rman_node.location[1] = n.location[1]
+            cycles_convert.convert_tex_image_node(nt, n, rman_node, ob=mat)
+
+            # hook up color and alpha sockets
+            for k,v in {'Color': 'resultRGB', 'Alpha': 'resultA'}.items():
+                socket = n.outputs[k]
+                for l in socket.links:
+                    # only connect to rman nodes
+                    if not hasattr(l.to_node, 'renderman_node_type'):
+                        continue
+                    to_socket = l.to_socket
+                    nt.links.new(rman_node.outputs[v], to_socket)
+
+            nt.nodes.remove(n)
+
+        return {"FINISHED"}    
+
 
 classes = [
     SHADING_OT_convert_all_renderman_nodetree,
@@ -777,7 +906,12 @@ classes = [
     PRMAN_OT_Force_LightFilter_Refresh,
     PRMAN_OT_Add_Projection_Nodetree,
     PRMAN_OT_Fix_Ramp,
-    PRMAN_OT_Fix_All_Ramps
+    PRMAN_OT_Fix_All_Ramps,
+    PRMAN_OT_Select_Nodetree_Node,
+    PRMAN_OT_Select_Nodetree_Reset,
+    PRMAN_MT_Select_Nodetree_Downstream,
+    PRMAN_MT_Select_Nodetree_Upstream,
+    PRMAN_OT_Convert_BlImage_Nodes    
 ]
 
 def register():

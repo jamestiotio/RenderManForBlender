@@ -18,8 +18,10 @@ from ..rman_properties import rman_properties_camera
 from ..rman_constants import RFB_ARRAYS_MAX_LEN
 from ..rman_constants import CYCLES_NODE_MAP
 from ..rman_constants import RMAN_FAKE_NODEGROUP
+from ..rman_constants import BLENDER_41
 from nodeitems_utils import NodeCategory, NodeItem
 from collections import OrderedDict
+from copy import deepcopy
 from bpy.props import *
 import bpy
 import os
@@ -114,6 +116,7 @@ def get_cycles_node_desc(node):
 def class_generate_properties(node, parent_name, node_desc):
     prop_names = []
     prop_meta = {}
+    ui_structs = {}
     output_meta = OrderedDict()
 
     if "__annotations__" not in node.__dict__:
@@ -185,6 +188,34 @@ def class_generate_properties(node, parent_name, node_desc):
         if not update_function:
             update_function = update_func
 
+        if node_desc_param.has_ui_struct:
+            ui_struct_nm = node_desc_param.uiStruct
+            ui_struct = ui_structs.get(ui_struct_nm, [])
+            if not ui_struct:
+                generate_property_utils.generate_uistruct_property(node, ui_struct_nm, prop_names, prop_meta)
+            ui_struct.append(node_desc_param.name)
+            ui_structs[ui_struct_nm] = ui_struct 
+            sub_prop_names = []
+            param_name = node_desc_param._name  
+            if isinstance(node_desc_param.default, list):
+                node_desc_param.default = node_desc_param.default[0]
+
+            for i in range(0, RFB_ARRAYS_MAX_LEN+1):      
+                ndp = deepcopy(node_desc_param)
+                ndp._name = '%s[%d]' % (param_name, i)
+                if hasattr(ndp, 'label'):
+                    ndp.label = '%s' % (ndp.label)
+                ndp.size = None
+                name, meta, prop = generate_property_utils.generate_property(node, ndp, update_function=update_function)
+                meta['renderman_array_name'] = param_name
+                meta['ui_struct'] = ui_struct_nm
+                sub_prop_names.append(ndp._name)
+                prop_meta[ndp._name] = meta
+                node.__annotations__[ndp._name] = prop  
+
+            setattr(node, param_name, sub_prop_names)   
+            continue            
+           
         if node_desc_param.is_array():
             # this is an array 
             if generate_property_utils.generate_array_property(node, prop_names, prop_meta, node_desc_param, update_function=update_function):
@@ -221,6 +252,7 @@ def class_generate_properties(node, parent_name, node_desc):
                         default = page_name_label == 'Diffuse'
                         enable_param_prop = BoolProperty(name="Enable " + page_name_label,
                                             default=bool(default),
+                                            description="Enable " + page_name_label,
                                             update=update_func_with_inputs)
                         node.__annotations__[enable_param_name] = enable_param_prop        
                         page_prop_names = getattr(node, page_name)   
@@ -282,6 +314,7 @@ def class_generate_properties(node, parent_name, node_desc):
     setattr(node, 'prop_names', prop_names)
     setattr(node, 'prop_meta', prop_meta)
     setattr(node, 'output_meta', output_meta)
+    setattr(node, "ui_structs", ui_structs)
 
 def generate_node_type(node_desc, is_oso=False):
     ''' Dynamically generate a node type from pattern '''
@@ -469,7 +502,12 @@ def generate_node_type(node_desc, is_oso=False):
         has_textured_params = True
         ntype.__annotations__['txm_id'] = StringProperty(name='txm_id', default="")
         for param in node_desc.textured_params:
-            rman_textured_params.append(param.name)
+            if param.has_ui_struct:
+                for i in range(RFB_ARRAYS_MAX_LEN+1):
+                    nm = '%s[%d]' % (param.name, i)
+                    rman_textured_params.append(nm)
+            else:
+                rman_textured_params.append(param.name)
     
     setattr(ntype, 'rman_textured_params', rman_textured_params)
     ntype.__annotations__['rman_has_textured_params'] = BoolProperty(
@@ -637,6 +675,65 @@ class RendermanNodeItem(NodeItem):
                 layout.menu('NODE_MT_RM_Integrators_Category_Menu')
                 layout.menu('NODE_MT_RM_SampleFilter_Category_Menu')
                 layout.menu('NODE_MT_RM_DisplayFilter_Category_Menu')
+
+class NODE_MT_RM_CATEGORY(bpy.types.Menu):
+    bl_label = "RenderMan"
+    bl_idname = "NODE_MT_RM_CATEGORY"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+    
+    @classmethod
+    def get_icon_id(cls):
+        return rfb_icons.get_icon("rman_blender").icon_id      
+
+    def draw(self, context):
+        layout = self.layout
+        if context.space_data.shader_type == 'OBJECT':
+            light = getattr(context, 'light', None)
+            if light:
+                nt = light.node_tree                        
+                layout.context_pointer_set("nodetree", nt)                 
+                layout.menu('NODE_MT_RM_Pattern_Category_Menu')
+                return
+
+            mat = getattr(context, 'material', None)
+            if not mat:
+                return
+            if not shadergraph_utils.is_renderman_nodetree(mat):
+                rman_icon = rfb_icons.get_icon('rman_graph')
+                layout.operator(
+                    'material.rman_add_rman_nodetree', icon_value=rman_icon.icon_id).idtype = "material"
+            else:
+                nt = mat.node_tree                        
+                layout.context_pointer_set("nodetree", nt) 
+                layout.menu('NODE_MT_RM_Bxdf_Category_Menu')
+                layout.menu('NODE_MT_RM_Displacement_Category_Menu')
+                layout.menu('NODE_MT_RM_Pattern_Category_Menu')
+                layout.menu('NODE_MT_RM_PxrSurface_Category_Menu')
+                layout.menu('NODE_MT_RM_Light_Category_Menu')
+
+        elif context.space_data.shader_type == 'WORLD':
+            world = context.scene.world
+            if not world.renderman.use_renderman_node:
+                rman_icon = rfb_icons.get_icon('rman_graph')
+                layout.operator('material.rman_add_rman_nodetree', icon_value=rman_icon.icon_id).idtype = 'world'
+            else:
+                nt = world.node_tree
+                layout.context_pointer_set("nodetree", nt) 
+                layout.menu('NODE_MT_RM_Integrators_Category_Menu')
+                layout.menu('NODE_MT_RM_SampleFilter_Category_Menu')
+                layout.menu('NODE_MT_RM_DisplayFilter_Category_Menu')     
+
+def add_renderman_category(self, context):
+    rd = context.scene.render
+    if rd.engine != 'PRMAN_RENDER':
+        return    
+
+    layout = self.layout
+    layout.menu('NODE_MT_RM_CATEGORY', text='RenderMan', icon_value=bpy.types.VIEW3D_MT_renderman_add_object_menu.get_icon_id())          
 
 
 def register_rman_nodes():
@@ -814,6 +911,10 @@ def register():
     rman_bl_nodes_shaders.register()
     rman_bl_nodes_ops.register()
     rman_bl_nodes_menus.register()
+
+    if BLENDER_41:
+        register_utils.rman_register_class(NODE_MT_RM_CATEGORY)
+        bpy.types.NODE_MT_add.append(add_renderman_category)
 
 def unregister():
     try:

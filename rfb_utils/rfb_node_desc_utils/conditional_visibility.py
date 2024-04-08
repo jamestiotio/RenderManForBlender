@@ -92,14 +92,24 @@ def _condvis_expr(pdict, prefix, trigger_params, expr=''):
                         val))  
 
         elif isinstance(val, str):
-            expr = ('getattr(node, "%s") %s "%s"' %
-                    (attr, opr,
-                        val))                                                             
+            if val == '':
+                expr = ('(getattr(node, "%s") %s "%s" or getattr(node, "%s") %s "__empty__")' %
+                        (attr, opr,
+                            val, attr, opr))                
+            else:
+                expr = ('getattr(node, "%s") %s "%s"' %
+                        (attr, opr,
+                            val))
 
-        elif _is_alpha_string(val) or val.isalpha() or val == '' or val in VALID_TYPES:
-            expr = ('getattr(node, "%s") %s "%s"' %
-                    (attr, opr,
-                        val))                                            
+        elif _is_alpha_string(val) or val.isalpha() or val == '':
+            if val == '':
+                expr = ('(getattr(node, "%s") %s "%s" or getattr(node, "%s") %s "__empty__")' %
+                        (attr, opr,
+                            val, attr, opr))
+            else:
+                expr = ('getattr(node, "%s") %s "%s"' %
+                        (attr, opr,
+                            val))                                            
         else:
             expr = ('float(getattr(node, "%s")) %s float(%s)' %
                     (attr, opr,

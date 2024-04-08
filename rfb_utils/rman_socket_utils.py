@@ -51,6 +51,8 @@ def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix=
     for name in prop_names:
         meta = node.prop_meta[name]
         param_type = meta['renderman_type']
+        ui_struct = meta.get('ui_struct', '')
+        is_ui_struct = meta.get('is_ui_struct', False)
 
         socket = node.inputs.get(name, None)
         if socket:
@@ -77,6 +79,22 @@ def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix=
                 node_add_inputs(node, node_name, getattr(node, name),
                                 first_level=first_level,
                                 label_prefix=label_prefix, remove=remove)
+            continue
+        elif is_ui_struct:
+            ui_structs = getattr(node, 'ui_structs', dict())
+            ui_struct_members = ui_structs[name]
+            array_len = getattr(node, '%s_arraylen' % name)
+            for i in range(array_len):
+                for member in ui_struct_members:
+                    sub_prop_names = getattr(node, member)                  
+                    nm = sub_prop_names[i]
+                    if node.prop_meta[nm].get('__noconnection', False):
+                        continue
+                    param_array_type = node.prop_meta[nm]['renderman_type']
+                    param_array_label = label_prefix + node.prop_meta[nm].get('label', nm) + '[%d]' % i
+                    node_add_input(node, param_array_type, nm, meta, param_array_label)
+            continue
+        elif ui_struct != "":
             continue
         elif param_type == 'array':
             if notconnectable:

@@ -393,129 +393,27 @@ class RmanSpool(object):
         command.argv.append(path)
         if rm.ai_denoiser_flow:
             command.argv.append('-f')
+        if rm.ai_denoiser_remap_diffuse:
+            command.argv.append('--diffuse')
+            command.argv.append(rm.ai_denoiser_remap_diffuse)
+        if rm.ai_denoiser_remap_specular:
+            command.argv.append('--specular')
+            command.argv.append(rm.ai_denoiser_remap_specular)
+        if rm.ai_denoiser_remap_albedo:
+            command.argv.append('--albedo')
+            command.argv.append(rm.ai_denoiser_remap_albedo)
+        if rm.ai_denoiser_remap_irradiance:
+            command.argv.append('--irradiance')
+            command.argv.append(rm.ai_denoiser_remap_irradiance)
+        if rm.ai_denoiser_remap_alpha:
+            command.argv.append('--alpha')
+            command.argv.append(rm.ai_denoiser_remap_alpha)                        
+
         command.argv.extend(img_files)
                                                          
         task.addCommand(command)
         self.add_preview_task(task, preview_img_files)
         parent_task.addChild(task) 
-
-        self.rman_render.bl_frame_current = cur_frame
-        return parent_task
-
-    def generate_denoise_tasks(self, start, last, by):
-
-        tasktitle = "Denoiser (Legacy) Renders"
-        parent_task = author.Task()
-        parent_task.title = tasktitle          
-        rm = self.bl_scene.renderman           
-        denoise_options = []
-        if rm.denoise_cmd != '':
-            denoise_options.append(rm.denoise_cmd)  
-        if rm.denoise_gpu:
-            denoise_options.append('--override')
-            denoise_options.append('gpuIndex')
-            denoise_options.append('0')
-            denoise_options.append('--')     
-
-        # any cross frame?
-        do_cross_frame = False
-        dspys_dict = display_utils.get_dspy_dict(self.rman_scene, expandTokens=False)  
-        for dspy,params in dspys_dict['displays'].items():
-                if not params['denoise']:
-                    continue        
-                if params['denoise_mode'] == 'crossframe':
-                    do_cross_frame = True
-                    break
-
-        if start == last:
-            do_cross_frame = False
-
-        if do_cross_frame:
-            # for crossframe, do it all in one task
-            cur_frame = self.rman_scene.bl_frame_current
-            task = author.Task()
-            task.title = 'Denoise (Legacy) Cross Frame'
-            command = author.Command(local=False, service="PixarRender")                
-
-            command.argv = ["denoise_legacy"]
-            for opt in denoise_options:
-                command.argv.append(opt)                
-            command.argv.append('--crossframe')  
-            command.argv.append('-v')
-            command.argv.append('variance')     
-                                             
-            for frame_num in range(start, last + 1, by):
-                self.rman_render.bl_frame_current = frame_num
-         
-                variance_file = string_utils.expand_string(dspys_dict['displays']['beauty']['filePath'], 
-                                                    frame=frame_num,
-                                                    asFilePath=True)  
-
-                f,ext = os.path.splitext(variance_file)  
-                if not f.endswith('_variance'):
-                    # check the variance filename for "_variance"
-                    variance_file = f + '_variance' + ext
-
-                for dspy,params in dspys_dict['displays'].items():
-                    if not params['denoise']:
-                        continue
-                    
-                    if dspy == 'beauty':
-                        command.argv.append(variance_file)
-                    else:
-                        command.argv.append(variance_file)
-                        token_dict = {'aov': dspy}
-                        aov_file = string_utils.expand_string(params['filePath'], 
-                                                frame=frame_num,
-                                                token_dict=token_dict,
-                                                asFilePath=True)    
-                        command.argv.append(aov_file)
-    
-            task.addCommand(command)
-            parent_task.addChild(task) 
-
-        else:
-            # singlframe
-            cur_frame = self.rman_scene.bl_frame_current
-            for frame_num in range(start, last + 1, by):
-                self.rman_render.bl_frame_current = frame_num
-         
-                variance_file = string_utils.expand_string(dspys_dict['displays']['beauty']['filePath'], 
-                                                    frame=frame_num,
-                                                    asFilePath=True)    
-
-                f,ext = os.path.splitext(variance_file)  
-                if not f.endswith('_variance'):
-                    # check the variance filename for "_variance"
-                    variance_file = f + '_variance' + ext                                                                               
-
-                for dspy,params in dspys_dict['displays'].items():
-                    if not params['denoise']:
-                        continue
-                    
-                    if params['denoise_mode'] != 'singleframe':
-                        continue
-
-                    task = author.Task()
-                    task.title = 'Denoise (Legacy) Frame %d' % frame_num
-                    command = author.Command(local=False, service="PixarRender")                
-
-                    command.argv = ["denoise_legacy"]
-                    for opt in denoise_options:
-                        command.argv.append(opt)
-                    if dspy == 'beauty':
-                        command.argv.append(variance_file)
-                    else:
-                        command.argv.append(variance_file)
-                        token_dict = {'aov': dspy}
-                        aov_file = string_utils.expand_string(params['filePath'], 
-                                                frame=frame_num,
-                                                token_dict=token_dict,
-                                                asFilePath=True)    
-                        command.argv.append(aov_file)
-    
-                    task.addCommand(command)
-                    parent_task.addChild(task) 
 
         self.rman_render.bl_frame_current = cur_frame
         return parent_task
@@ -573,10 +471,7 @@ class RmanSpool(object):
         # Don't generate denoise tasks if we're baking
         # or using the Blender compositor
         if rm.hider_type == 'RAYTRACE' and (not rm.use_bl_compositor or not scene.use_nodes):
-            if rm.use_legacy_denoiser:
-                parent_task = self.generate_denoise_tasks(frame_begin, frame_end, by)                               
-            else:
-                parent_task = self.generate_aidenoise_tasks(frame_begin, frame_end, by)                               
+            parent_task = self.generate_aidenoise_tasks(frame_begin, frame_end, by)                               
                 
             if parent_task:
                 job.addChild(parent_task)
@@ -658,10 +553,7 @@ class RmanSpool(object):
 
         # Don't denoise if we're baking
         if rm.hider_type == 'RAYTRACE':
-            if rm.use_legacy_denoiser:
-                parent_task = self.generate_denoise_tasks(frame_begin, frame_end, by)                               
-            else:
-                parent_task = self.generate_aidenoise_tasks(frame_begin, frame_end, by)
+            parent_task = self.generate_aidenoise_tasks(frame_begin, frame_end, by)
                 
             if parent_task:
                 job.addChild(parent_task)

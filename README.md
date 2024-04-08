@@ -10,7 +10,7 @@ To use, install RenderMan, (free from [renderman.pixar.com](https://renderman.pi
 
 ## Getting Help
 
-For support visit the [RenderMan AnswerHub](https://renderman.pixar.com/answers/) or the [RenderMan Discord Server](https://discord.com/invite/renderman).
+For support visit the [RenderMan Discord Server](https://discord.com/invite/renderman).
 
 ## Acknowledgements
 

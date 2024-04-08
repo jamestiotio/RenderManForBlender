@@ -158,7 +158,7 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         if maxSamples <= 0:
             return 0.0
         frac = itr/maxSamples
-        return (frac * 100)
+        return int(frac * 100)
 
     roz_stats_progress: IntProperty(name='Progress', subtype='PERCENTAGE', min=0, max=100, get=get_roz_stats_progress)
     roz_stats_iterations: IntProperty(name='Iterations', subtype='PERCENTAGE', min=0, max=100, get=get_roz_stats_iterations)

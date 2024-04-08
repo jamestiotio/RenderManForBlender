@@ -1,0 +1,10 @@
+{
+    "name": "PxrHairColor.oso",
+    "params": [
+        {
+            "name": "hairIndexPrimvar",    
+            "default": "index",
+            "always_write": true
+        }        
+    ]
+}

@@ -3,7 +3,8 @@
     "params": [
         {
             "name": "filename",
-            "default": "<OUT>/images/v<version>_t<take>/<scene>.<layer>.cryptomatte.<F4>.exr"
+            "default": "<OUT>/images/v<version>_t<take>/<scene>.<layer>.cryptomatte.<F4>.exr",
+            "always_write": true
         }                    
     ]
 }
