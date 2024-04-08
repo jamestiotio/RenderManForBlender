@@ -8,9 +8,46 @@ import bpy
 import os
 import getpass
 import re
+import sys
 
 __BLENDER_TO_RMAN_DSPY__ = { 'TIFF': 'tiff', 'TARGA': 'targa', 'TARGA_RAW': 'targa', 'OPEN_EXR': 'openexr', 'PNG': 'png'}
 __RMAN_TO_BLENDER__ = { 'tiff': 'TIFF', 'targa': 'TARGA', 'openexr':'OPEN_EXR', 'png':'PNG'}
+
+__RFB_DENOISER_AI__ = '1'
+__RFB_DENOISER_OPTIX__ = '2'
+if sys.platform == "darwin":
+    __RFB_DENOISER_OPTIX__ = '0'
+
+class OutputChannel:
+
+    def __init__(self, channelType, channelName, channelSource="", channelStatistics=""):
+        self.type = channelType
+        self.name = channelName
+        self.source = channelSource
+        self.statistics = channelStatistics
+
+# Settings copied from RfK
+# They seem to be slightly different from batch render version
+__INTERACTIVE_DENOISE_CHANNELS = [
+    OutputChannel("color", "Ci"),
+    OutputChannel("float", "a"),
+    OutputChannel("color", "albedo", "color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C<.S'passthru'>*((U2L)|O)"),
+    OutputChannel("color", "albedo_var", "color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C<.S'passthru'>*((U2L)|O)", "variance"),
+    OutputChannel("color", "albedo_mse", "color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C<.S'passthru'>*((U2L)|O)", "mse"),
+    OutputChannel("vector", "backward", "vector motionBack"),
+    OutputChannel("color", "diffuse", "color lpe:C(D[DS]*[LO])|O"),
+    OutputChannel("color", "diffuse_mse", "color lpe:C(D[DS]*[LO])|O", "mse"),
+    OutputChannel("vector", "forward", "vector motionFore"),
+    OutputChannel("color", "mse", "color Ci", "mse"),
+    OutputChannel("normal", "normal", "normal Nn"),
+    OutputChannel("normal", "normal_var", "normal Nn", "variance"),
+    OutputChannel("color", "normal_mse", "normal Nn", "mse"),
+    OutputChannel("color", "specular", "color lpe:CS[DS]*[LO]"),
+    OutputChannel("color", "specular_mse", "color lpe:CS[DS]*[LO]", "mse"),
+    OutputChannel("float", "zfiltered", "float zfiltered"),
+    OutputChannel("float", "zfiltered_var", "float zfiltered", "variance"),
+    OutputChannel("float", "sampleCount", "sampleCount")
+]
 
 def get_beauty_filepath(bl_scene, use_blender_frame=False, expand_tokens=False, no_ext=False):
     dspy_info = dict()
@@ -55,8 +92,7 @@ def _default_dspy_params():
     d[u'remap_b'] = { 'type': u'float', 'value': 0.0}
     d[u'remap_c'] = { 'type': u'float', 'value': 0.0}  
     d[u'exposure'] = { 'type': u'float2', 'value': [1.0, 1.0] }
-    d[u'filter'] = {'type': u'string', 'value': 'default'}
-    d[u'filterwidth'] = { 'type': u'float2', 'value': [2,2]}   
+    d[u'filter'] = {'type': u'string', 'value': 'default'}  
     d[u'statistics'] = { 'type': u'string', 'value': 'none'}
     d[u'shadowthreshold'] = { 'type': u'float', 'value': 0.01} 
 
@@ -169,10 +205,31 @@ def _add_denoiser_channels(dspys_dict, dspy_params, rman_scene):
 
         dspys_dict['displays']['beauty']['params']['displayChannels'].append(chan)            
 
-    if rman_scene.bl_scene.renderman.use_legacy_denoiser:
-        filePath = dspys_dict['displays']['beauty']['filePath']
-        f,ext = os.path.splitext(filePath)
-        dspys_dict['displays']['beauty']['filePath'] = f + '_variance' + ext
+    dspys_dict['displays']['beauty']['is_variance'] = True
+
+def _add_interactive_denoiser_channels(dspys_dict, dspy_params, rman_scene):
+    """
+    Add the necessary dspy channels for denoiser. We assume
+    the beauty display will be used as the variance file
+    """
+
+    for output_chan in __INTERACTIVE_DENOISE_CHANNELS:
+        dspy_channels = dspys_dict['displays']['beauty']['params']['displayChannels']
+        if output_chan.name in dspy_channels:
+            continue
+
+        if output_chan.name not in dspys_dict['channels']:
+            d = _default_dspy_params()
+
+            if output_chan.source != "":
+                d[u'channelSource'] = {'type': u'string', 'value': output_chan.source}
+            d[u'channelType'] = { 'type': u'string', 'value': output_chan.type}
+            if output_chan.statistics != '':
+                d[u'statistics'] = { 'type': u'string', 'value': output_chan.statistics}
+            dspys_dict['channels'][output_chan.name] =  d  
+
+        dspys_dict['displays']['beauty']['params']['displayChannels'].append(output_chan.name)            
+
     dspys_dict['displays']['beauty']['is_variance'] = True
 
 def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens, do_optix_denoise=False):   
@@ -223,7 +280,10 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
         'dspyDriverParams': param_list}
 
     if display_driver == 'blender' and rman_scene.is_viewport_render:
-            display_driver = 'null' 
+        display_driver = 'null' 
+    elif display_driver == "quicklyNoiseless":
+        _add_interactive_denoiser_channels(dspys_dict, dspy_params, rman_scene)
+        display_driver = 'null' 
 
     # so use built in aovs
     blender_aovs = [
@@ -340,7 +400,6 @@ def _add_chan_to_dpsychan_list(rm, rm_rl, dspys_dict, chan):
 
         if chan.chan_pixelfilter != 'default':
             d[u'filter'] = {'type': u'string', 'value': chan.chan_pixelfilter}
-            d[u'filterwidth'] = { 'type': u'float2', 'value': [chan.chan_pixelfilter_x, chan.chan_pixelfilter_y]}
 
         d[u'statistics'] = { 'type': u'string', 'value': chan.stats_type}
         d[u'shadowthreshold'] = { 'type': u'float', 'value': chan.shadowthreshold}
@@ -474,6 +533,9 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens, d
 
         if aov_denoise and display_driver == 'openexr' and not rman_scene.is_interactive:
             _add_denoiser_channels(dspys_dict, dspy_params, rman_scene)
+        
+        if display_driver == "quicklyNoiseless":
+            _add_interactive_denoiser_channels(dspys_dict, dspy_params, rman_scene)
 
         if aov.name == 'beauty' and rman_scene.is_interactive:
           
@@ -486,8 +548,7 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens, d
             d = _default_dspy_params()
             d[u'channelSource'] = {'type': u'string', 'value': 'id'}
             d[u'channelType'] = { 'type': u'string', 'value': 'integer'}     
-            d[u'filter'] = {'type': u'string', 'value': 'zmin'}
-            d[u'filterwidth'] = { 'type': u'float2', 'value': [1, 1]}            
+            d[u'filter'] = {'type': u'string', 'value': 'zmin'}         
             dspys_dict['channels']['id'] = d     
             dspy_params['displayChannels'].append('id')
             filePath = 'id_pass'
@@ -622,7 +683,6 @@ def get_dspy_dict(rman_scene, expandTokens=True, include_holdouts=True):
                                     u'displayType': { 'type': u'message', 'value': u'd_openexr'},
                                     u'exposure': { 'type': u'float2', 'value': [1.0, 1.0]},
                                     u'filter': { 'type': u'string', 'value': 'default},
-                                    u'filterwidth': { 'type': u'float2', 'value': [1.0, 1.0]},
                                     u'remap_a': { 'type': u'float', 'value': 0.0},
                                     u'remap_b': { 'type': u'float', 'value': 0.0},
                                     u'remap_c': { 'type': u'float', 'value': 0.0}
@@ -650,7 +710,11 @@ def get_dspy_dict(rman_scene, expandTokens=True, include_holdouts=True):
 
     if rman_scene.is_interactive:
         display_driver = rman_scene.ipr_render_into
-        do_optix_denoise = rm.blender_ipr_optix_denoiser
+        if rm.blender_ipr_denoiser == __RFB_DENOISER_AI__:
+            if not rman_scene.is_xpu:
+                display_driver = 'quicklyNoiseless' 
+        elif rm.blender_ipr_denoiser == __RFB_DENOISER_OPTIX__:
+            do_optix_denoise = True
 
     elif (not rman_scene.external_render): 
         # if preview render
@@ -658,7 +722,7 @@ def get_dspy_dict(rman_scene, expandTokens=True, include_holdouts=True):
         # render_into is set to
         display_driver = rm.render_into
         do_optix_denoise = rm.blender_optix_denoiser
-           
+            
     if rm_rl:     
         _set_rman_dspy_dict(rm_rl, dspys_dict, display_driver, rman_scene, expandTokens, do_optix_denoise=do_optix_denoise)        
 
@@ -708,9 +772,10 @@ def make_dspy_info(scene, is_interactive=False):
     dspy_notes += "Integrator:\t%s\r\r" % integrator_nm
     if is_interactive:
         dspy_notes += "Samples:\t%d - %d\r" % (rm.ipr_hider_minSamples, rm.ipr_hider_maxSamples)
+        dspy_notes += "Pixel Variance:\t%f\r\r" % rm.ipr_ri_pixelVariance
     else:
         dspy_notes += "Samples:\t%d - %d\r" % (rm.hider_minSamples, rm.hider_maxSamples)        
-    dspy_notes += "Pixel Variance:\t%f\r\r" % rm.ri_pixelVariance
+        dspy_notes += "Pixel Variance:\t%f\r\r" % rm.ri_pixelVariance
 
     # moved this in front of integrator check. Was called redundant in
     # both cases

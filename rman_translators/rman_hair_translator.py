@@ -114,7 +114,7 @@ class RmanHairTranslator(RmanTranslator):
                 rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
                 if rman_sg_material:
                     material_sg_node = rman_sg_material.sg_node
-            scenegraph_utils.set_material(rman_sg_hair.sg_node, material_sg_node)
+            scenegraph_utils.set_material(rman_sg_hair.sg_node, material_sg_node, rman_sg_material, mat=mat, ob=ob)
         
     def add_object_instance(self, rman_sg_hair, rman_sg_group):
         rman_sg_hair.sg_node.AddChild(rman_sg_group.sg_node)                
@@ -238,6 +238,8 @@ class RmanHairTranslator(RmanTranslator):
             if bl_curve.nverts > 100000:
                 curve_sets.append(bl_curve)
                 bl_curve = BlHair()
+                if conwidth:
+                    bl_curve.hair_width.append(base_width)                
 
         if bl_curve.nverts > 0:       
             curve_sets.append(bl_curve)

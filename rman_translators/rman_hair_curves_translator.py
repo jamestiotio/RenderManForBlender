@@ -1,6 +1,7 @@
 from .rman_translator import RmanTranslator
 from ..rfb_utils import transform_utils
 from ..rfb_utils import scenegraph_utils
+from ..rfb_utils.timer_utils import time_this
 from ..rfb_logger import rfb_log
 from ..rman_sg_nodes.rman_sg_haircurves import RmanSgHairCurves
 from mathutils import Vector
@@ -16,7 +17,7 @@ class BlHair:
         self.nverts = 0
         self.hair_width = []
         self.index = []
-        self.bl_hair_attributes = []
+        self.bl_hair_attributes = dict()
 
 class BlHairAttribute:
 
@@ -24,6 +25,7 @@ class BlHairAttribute:
         self.rman_type = ''
         self.rman_name = ''
         self.rman_detail = None
+        self.array_len = -1
         self.values = []
 
 class RmanHairCurvesTranslator(RmanTranslator):
@@ -79,7 +81,7 @@ class RmanHairCurvesTranslator(RmanTranslator):
             width_detail = "vertex" 
             primvar.SetFloatDetail(self.rman_scene.rman.Tokens.Rix.k_width, bl_curve.hair_width, width_detail)
             
-            for hair_attr in bl_curve.bl_hair_attributes:
+            for nm, hair_attr in bl_curve.bl_hair_attributes.items():
                 if hair_attr.rman_detail is None:
                     continue
                 if hair_attr.rman_type == "float":
@@ -95,16 +97,20 @@ class RmanHairCurvesTranslator(RmanTranslator):
                     
             curves_sg.SetPrimVars(primvar)
             rman_sg_hair.sg_node.AddChild(curves_sg)  
-            rman_sg_hair.sg_curves_list.append(curves_sg)
+            rman_sg_hair.sg_curves_list.append(curves_sg)  
         
-    def get_attributes(self, ob, bl_curve):
+    def get_attributes(self, ob, bl_hair_attributes):
+        uv_map = ob.original.data.surface_uv_map
         for attr in ob.data.attributes:
-            if attr.name in ['position']:
+            if attr.name.startswith('.'):
                 continue
             hair_attr = None
             if attr.data_type == 'FLOAT2':
                 hair_attr = BlHairAttribute()
                 hair_attr.rman_name = attr.name
+                if attr.name == uv_map:
+                    # rename this to be our scalpST
+                    hair_attr.rman_name = 'scalpST'
                 hair_attr.rman_type = 'float2'
 
                 npoints = len(attr.data)
@@ -159,20 +165,48 @@ class RmanHairCurvesTranslator(RmanTranslator):
                 hair_attr.values = values.tolist()                
             
             if hair_attr:
-                bl_curve.bl_hair_attributes.append(hair_attr)
-                if len(attr.data) == len(ob.data.curves):
+                bl_hair_attributes[attr.name] = hair_attr     
+                if len(attr.data) == len(ob.data.points):
+                    hair_attr.rman_detail = 'vertex'
+                elif len(attr.data) == len(ob.data.curves):
                     hair_attr.rman_detail = 'uniform'
-                elif len(attr.data) == len(ob.data.points):
-                    hair_attr.rman_detail = 'vertex'        
 
+    def get_attributes_for_curves(self, ob, bl_hair_attributes, bl_curve, idx, fp_idx, npoints):
+        for attr in ob.data.attributes:
+            if attr.name.startswith('.'):
+                continue
+            if attr.name not in bl_hair_attributes:
+                continue
+            hair_attr = bl_hair_attributes[attr.name]
+
+            hair_curve_attr = bl_curve.bl_hair_attributes.get(attr.name, BlHairAttribute())
+            hair_curve_attr.rman_name = hair_attr.rman_name
+            hair_curve_attr.rman_detail = hair_attr.rman_detail
+            hair_curve_attr.rman_type = hair_attr.rman_type
+            if hair_attr.rman_detail == "uniform":
+                hair_curve_attr.values.append(hair_attr.values[idx])
+            else:
+                # if the detail is vertex, use the first point index
+                # and npoints to get the values we need
+                # we also need to duplicate the end points, like we do for P
+                vals = hair_attr.values[fp_idx:fp_idx+npoints]
+                vals = vals[:1] + vals + vals[-1:]
+                hair_curve_attr.values.append(vals)
+            bl_curve.bl_hair_attributes[attr.name] = hair_curve_attr
+
+
+    @time_this
     def _get_strands_(self, ob):
 
         curve_sets = []
         bl_curve = BlHair()
         db = ob.data
+        bl_hair_attributes = dict()
+        self.get_attributes(ob, bl_hair_attributes)
         for curve in db.curves:
             if curve.points_length < 4:
-                continue
+                rfb_log().error("We do not support curves with only 4 control points")
+                return []
 
             npoints = len(curve.points)
             strand_points = np.zeros(npoints*3, dtype=np.float32)
@@ -187,13 +221,13 @@ class RmanHairCurvesTranslator(RmanTranslator):
             strand_points = strand_points.tolist()
             widths = widths.tolist()
 
-            '''
-            # do we really need to double the end points?
+            
+            # double the end points
             strand_points = strand_points[:1] + \
                 strand_points + strand_points[-1:]
 
             widths = widths[:1] + widths + widths[-1:]
-            '''
+            
             vertsInStrand = len(strand_points)
 
             bl_curve.points.extend(strand_points)
@@ -201,16 +235,16 @@ class RmanHairCurvesTranslator(RmanTranslator):
             bl_curve.hair_width.extend(widths)
             bl_curve.index.append(curve.index)
             bl_curve.nverts += vertsInStrand           
+
+            self.get_attributes_for_curves(ob, bl_hair_attributes, bl_curve, curve.index, curve.first_point_index, npoints)
                
             # if we get more than 100000 vertices, start a new BlHair.  This
             # is to avoid a maxint on the array length
             if bl_curve.nverts > 100000:
-                self.get_attributes(ob, bl_curve)
                 curve_sets.append(bl_curve)
                 bl_curve = BlHair()
 
         if bl_curve.nverts > 0:       
-            self.get_attributes(ob, bl_curve)
             curve_sets.append(bl_curve)
 
         return curve_sets              

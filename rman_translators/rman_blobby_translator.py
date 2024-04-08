@@ -13,6 +13,9 @@ def get_mball_parent(mball):
             return ob
 
 class RmanBlobbyTranslator(RmanTranslator):
+    '''
+    TODO: this translator should be removed once we set our min supported version to Blender 3.6
+    '''
 
     def __init__(self, rman_scene):
         super().__init__(rman_scene)

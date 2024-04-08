@@ -104,6 +104,7 @@ class RfBStatsManager(object):
         global __LIVE_METRICS__
 
         self.mgr = None
+        self.rman_render = rman_render
         self.create_stats_manager()        
         self.render_live_stats = OrderedDict()
         self.render_stats_names = OrderedDict()
@@ -136,9 +137,7 @@ class RfBStatsManager(object):
         self.rman_stats_session = None
         self.rman_stats_session_config = None        
 
-        self.rman_render = rman_render
         self.init_stats_session()
-        self.create_stats_manager()
         __RFB_STATS_MANAGER__ = self
 
     def __del__(self):
@@ -166,9 +165,12 @@ class RfBStatsManager(object):
             return
 
         try:
-            self.mgr = stcore.StatsManager()
+            self.mgr = stcore.StatsManager(                          
+                        # sync live stats server ID betw UI (client) & plugin (server)
+                        host_assign_server_id_func=self.assign_server_id_func)
             self.is_valid = self.mgr.is_valid
-        except:
+        except Exception as e:
+            rfb_log().error(str(e))
             self.mgr = None
             self.is_valid = False          
 
@@ -181,18 +183,27 @@ class RfBStatsManager(object):
         if rman_stats_config_path:
             if os.path.exists(os.path.join(rman_stats_config_path, 'stats.ini')):
                 self.rman_stats_session_config.LoadConfigFile(rman_stats_config_path, 'stats.ini')
+
+        # add listener plugin path
+        listenerPath = os.path.join(os.environ.get("RMANTREE"), "lib/plugins/listeners")
+        rman.Stats.SetListenerPluginSearchPath(listenerPath)
                           
         # do this once at startup
-        self.web_socket_server_id = 'rfb_statsserver_' + getpass.getuser() + '_' + str(os.getpid())
+        self.web_socket_server_id = 'rfb_' + getpass.getuser() + '_' + str(os.getpid())
         self.rman_stats_session_config.SetServerId(self.web_socket_server_id)
 
         # initialize session config with prefs, then add session
         self.update_session_config()     
+
+    def stats_add_session(self):
         self.rman_stats_session = rman.Stats.AddSession(self.rman_stats_session_config)  
+
+    def stats_remove_session(self):
+        rman.Stats.RemoveSession(self.rman_stats_session)  
 
     def update_session_config(self, force_enabled=False):
 
-        self.web_socket_enabled = prefs_utils.get_pref('rman_roz_liveStatsEnabled', default=False)
+        self.web_socket_enabled = True # we are always enabled
         self.web_socket_port = prefs_utils.get_pref('rman_roz_webSocketServer_Port', default=0)
 
         if force_enabled:
@@ -231,47 +242,76 @@ class RfBStatsManager(object):
         else:
             self.disconnect()
 
+    def assign_server_id_func(self):
+        """ If we have an active render get the serverId string that was used for the
+            live stats server registration when the render started.
+            Note: This is called by live stats UI polling method to determine current
+            live stats server so it should be kept as simple as possible.
+
+            Returns: Server ID string, or None if a render is not running or if
+            the serverId is not found.
+        """
+
+        # No stats if no render
+        if not self.rman_render.rman_running:
+            return None
+        
+        return self.web_socket_server_id            
+
 
     def boot_strap(self):
         while not self.mgr.clientConnected():
             time.sleep(0.01)
             if self.boot_strap_thread_kill:
+                rfb_log().debug("Bootstrap thread killed")
                 return
             if self.mgr.failedToConnect():
-                rfb_log().error('Failed to connect to stats web socket server.')
-                return
-            if self.mgr.clientConnected():
-                for name,label in __LIVE_METRICS__:
-                    # Declare interest
-                    if name:
-                        self.mgr.enableMetric(name)
-                return       
-        
-    def attach(self, force=False):
+                rfb_log().debug('Failed to connect to stats server: %s' % self.mgr.connectionStatusString())
+                self.mgr.connectToServer() # keep trying to connect
+                continue
 
-        if not self.mgr:
-            return 
+        if self.mgr.clientConnected():
+            rfb_log().debug("Connected to stats server. Declare interest")
+            for name,label in __LIVE_METRICS__:
+                # Declare interest
+                if name:
+                    self.mgr.enableMetric(name) 
 
-        if force:
-            # force the live stats to be enabled
-            self.update_session_config(force_enabled=True)
-
-        if (self.mgr.clientConnected()):
-            return
-
-        # Manager will connect based on given configuration & serverId
-        self.mgr.connectToServer()
-
+    def kill_boostap_thread(self):
         # if the bootstrap thread is still running, kill it
         if self.boot_strap_thread:
             if self.boot_strap_thread.is_alive():
                 self.boot_strap_thread_kill = True
                 self.boot_strap_thread.join()
             self.boot_strap_thread_kill = False
-            self.boot_strap_thread = False
+            self.boot_strap_thread = False        
+        
+    def attach(self):
+
+        if not self.mgr:
+            return False
+
+        if (self.mgr.clientConnected()):
+            return True
+
+        # Manager will connect based on given configuration & serverId
+        self.mgr.connectToServer()
+
+        # Check if the boostrapping thread is still running
+        # Shouldn't really need this, but let's just be sure.
+        self.kill_boostap_thread()
 
         self.boot_strap_thread = threading.Thread(target=self.boot_strap)
         self.boot_strap_thread.start()
+        # wait 5 seconds
+        if not self.boot_strap_thread.join(5.0):
+            # boostrap thread didn't stop, abort
+            self.kill_boostap_thread()
+            if not self.mgr.clientConnected():  
+                # if we still can't connect to the stats server, abort 
+                rfb_log().debug("Giving up trying to connect to stats server: %s" % self.mgr.connectionStatusString())             
+                return False
+        return True
 
     def is_connected(self):
         return (self.web_socket_enabled and self.mgr and self.mgr.clientConnected())
@@ -446,7 +486,7 @@ class RfBStatsManager(object):
                 progress = float(self._progress) / 100.0  
                 self.rman_render.bl_engine.update_progress(progress)
             except ReferenceError as e:
-                #rfb_log().debug("Error calling update stats (%s). Aborting..." % str(e))
+                rfb_log().error("Error calling update stats (%s). Aborting..." % str(e))
                 return                
 
 def register():
