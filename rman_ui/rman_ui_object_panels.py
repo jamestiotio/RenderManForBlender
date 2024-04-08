@@ -89,6 +89,8 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
+        if context.object.type in ['LIGHT']:
+            return False
         return (context.object and rd.engine in {'PRMAN_RENDER'})
 
     def draw_item(self, layout, context, item):
@@ -181,7 +183,6 @@ class MATERIAL_PT_renderman_object_shader_surface(Panel, CollectionPanel):
         layout = self.layout
         mat = context.object.renderman.rman_material_override
         if mat.renderman and mat.node_tree:
-            layout.context_pointer_set("material", mat)
             nt = mat.node_tree
             rman_output_node = is_renderman_nodetree(mat)
 
@@ -271,7 +272,6 @@ class MATERIAL_PT_renderman_object_shader_surface(Panel, CollectionPanel):
 
             layout.separator()
         if mat and not is_renderman_nodetree(mat):
-            layout.context_pointer_set("material", mat)
             rm = mat.renderman
             row = layout.row()
             
@@ -307,14 +307,13 @@ class MATERIAL_PT_renderman_object_shader_displacement(Panel, CollectionPanel):
         return (context.object and rd.engine in {'PRMAN_RENDER'} )             
 
     def draw(self, context):
-        layout = self.layout
         mat = context.object.renderman.rman_material_override
         if mat.renderman and mat.node_tree:
-            layout.context_pointer_set("material", mat)
             nt = mat.node_tree
             rman_output_node = is_renderman_nodetree(mat)
             if not rman_output_node:
                 return
+            layout = self.layout
 
             # Filter Toggle
             split = layout.split(factor=0.05)
@@ -809,7 +808,6 @@ class OBJECT_PT_renderman_object_custom_attributes(CollectionPanel, Panel):
         if prop_index > -1 and prop_index < len(prop):
             item = prop[prop_index]
             layout.prop(item, 'name')
-            layout.prop(item, 'namespace')
             layout.prop(item, 'type')
             layout.prop(item, 'value_%s' % item.type, slider=True)        
 

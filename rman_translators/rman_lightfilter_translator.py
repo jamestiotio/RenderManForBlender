@@ -1,9 +1,8 @@
 from .rman_translator import RmanTranslator
 from ..rfb_utils import property_utils
-from ..rfb_utils import scenegraph_utils
+from ..rfb_utils import transform_utils
 from ..rfb_utils import object_utils
 from ..rman_sg_nodes.rman_sg_lightfilter import RmanSgLightFilter
-from mathutils import Matrix
 import bpy                    
 
 class RmanLightFilterTranslator(RmanTranslator):
@@ -21,25 +20,14 @@ class RmanLightFilterTranslator(RmanTranslator):
         maxLFs = []
         minLFs = []
         screenLFs = []
-        has_cheat_shadow = False
         rman_sg_node.sg_node.SetLightFilter([])
-        is_mesh_light = isinstance(ob, bpy.types.Material)
-
-        # Remove all of the children 
-        if is_mesh_light:
-            rman_sg_node.sg_lightfilters.clear()
-        else:
-            for c in [ rman_sg_node.sg_node.GetChild(i) for i in range(0, rman_sg_node.sg_node.GetNumChildren())]:
-                rman_sg_node.sg_node.RemoveCoordinateSystem(c)
-                rman_sg_node.sg_node.RemoveChild(c)
-                self.rman_scene.sg_scene.DeleteDagNode(c)         
-
         for lf in rm.light_filters:
             light_filter = lf.linked_filter_ob
             if light_filter:
                 # check to make sure this light filter is still in the scene
                 if not self.rman_scene.bl_scene.objects.get(light_filter.name, None):
                     continue
+                light_filter_sg = None
 
                 light_filter_db_name = object_utils.get_db_name(light_filter)                
                 rman_sg_lightfilter = self.rman_scene.rman_prototypes.get(light_filter.original.data.original)
@@ -54,21 +42,9 @@ class RmanLightFilterTranslator(RmanTranslator):
                     del rman_sg_lightfilter
                     self.rman_scene.rman_prototypes.pop(light_filter.original.data.original)
                     rman_sg_lightfilter = self.export(light_filter, light_filter_db_name)
-
-                sg_group = self.rman_scene.sg_scene.CreateGroup(light_filter_db_name)
-                sg_group.SetInheritTransform(False)
-                if is_mesh_light:
-                    # This is a mesh light. Just add the transfrom to the RmanSgMaterial list
-                    rman_sg_node.sg_lightfilters.append(sg_group)                  
-                else:
-                     # Add transform of lightfilter as a child node of the light
-                    rman_sg_node.sg_node.AddChild(sg_group)
-                    rman_sg_node.sg_node.AddCoordinateSystem(sg_group)
-                    self.update_transform(light_filter, ob, sg_group)                    
-
                 self.update(light_filter, rman_sg_lightfilter)
                 light_filters.append(rman_sg_lightfilter.sg_filter_node)
-                if not is_mesh_light and ob.original not in rman_sg_lightfilter.lights_list:
+                if ob.original not in rman_sg_lightfilter.lights_list:
                     rman_sg_lightfilter.lights_list.append(ob.original)
 
                 # check which, if any, combineMode this light filter wants
@@ -83,14 +59,6 @@ class RmanLightFilterTranslator(RmanTranslator):
                     minLFs.append(instance_name)
                 elif combineMode == 'screen':
                     screenLFs.append(instance_name)
-                if lightfilter_node.bl_label == "PxrCheatShadowLightFilter":
-                    has_cheat_shadow = True
-
-                if 'lightFilterParentShader' in lightfilter_node.prop_meta.keys():
-                    # this light filter has a lightFilterParentShader param
-                    # these light filters want the light shader name they are attached to
-                    light_shader_name = rm.get_light_node_name()
-                    rman_sg_lightfilter.sg_filter_node.params.SetString('__lightFilterParentShader', light_shader_name)
 
         if len(light_filters) > 1:
             # create a combiner node
@@ -102,24 +70,10 @@ class RmanLightFilterTranslator(RmanTranslator):
             if minLFs:
                 combiner.params.SetLightFilterReferenceArray("min", minLFs, len(minLFs))                
             if screenLFs:
-                combiner.params.SetLightFilterReferenceArray("screen", screenLFs, len(screenLFs)) 
-
-            if has_cheat_shadow:
-                combiner.params.SetInteger("combineShadows", 1)
-            else:
-                combiner.params.Remove("combineShadows")
-
+                combiner.params.SetLightFilterReferenceArray("screen", screenLFs, len(screenLFs))      
             light_filters.append(combiner)                                        
 
         if len(light_filters) > 0:
-            if not is_mesh_light:
-                # create a __lightFilterParent coordinate system
-                # this is the coordinate system the light is in
-                sg_group = self.rman_scene.sg_scene.CreateGroup('__lightFilterParent')
-                rman_sg_node.sg_node.AddChild(sg_group)
-                rman_sg_node.sg_node.AddCoordinateSystem(sg_group)
-
-            # now, set the light filters list
             rman_sg_node.sg_node.SetLightFilter(light_filters)                 
 
     def export(self, ob, db_name):
@@ -133,14 +87,15 @@ class RmanLightFilterTranslator(RmanTranslator):
         rman_sg_lightfilter.coord_sys = db_name
         rman_sg_lightfilter.rman_type = 'LIGHTFILTER'
 
+        rman_group_translator = self.rman_scene.rman_translators['GROUP']
+
+        rman_group_translator.update_transform(ob, rman_sg_lightfilter)
+        self.rman_scene.get_root_sg_node().AddChild(rman_sg_lightfilter.sg_node)
         proto_key = object_utils.prototype_key(ob)
         self.rman_scene.rman_prototypes[proto_key] = rman_sg_lightfilter
-        rman_sg_lightfilter.sg_node.SetInheritTransform(False)
+        self.rman_scene.sg_scene.Root().AddCoordinateSystem(rman_sg_lightfilter.sg_node)
 
         return rman_sg_lightfilter 
-    
-    def update_transform(self, ob, light_ob, sg_node):
-        scenegraph_utils.update_lightfilter_transform(ob, light_ob, sg_node)
 
     def update(self, ob, rman_sg_lightfilter):
         lightfilter_node = ob.data.renderman.get_light_node()

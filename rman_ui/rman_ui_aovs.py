@@ -11,7 +11,6 @@ from ..rfb_utils import string_utils
 from ..rfb_utils import scene_utils
 from ..rfb_utils.envconfig_utils import envconfig
 from ..rfb_utils.draw_utils import _draw_ui_from_rman_config
-from ..rfb_utils.property_callbacks import update_displays_func
 from .. import rman_config
 from ..rman_render import RmanRender
 
@@ -110,28 +109,15 @@ class PRMAN_OT_Renderman_layer_channel_set_light_group(Operator):
                     if chan.channel_source == settings['channelSource'] and chan.channel_type == settings['channelType']:
                         chan_name = nm
                         break
-            found = False
             for idx, c in enumerate(rm_rl.dspy_channels):
                 # this channel with the same light group already exists
                 # use that instead
                 if chan_name == c.name and chan_light_group == c.light_group:
                     chan_ptr.dspy_chan_idx = idx
-                    found = True
                     return
-                
-            if not found:
-                # if there isn't an existing channel, add a new one
-                new_chan = rm_rl.dspy_channels.add()
-                new_chan.channel_name = chan_name   
-                new_chan.is_custom = True 
-                new_chan.channel_source = chan.channel_source
-                new_chan.channel_type = chan.channel_type
-                chan_ptr.dspy_chan_idx = len(rm_rl.dspy_channels)-1
-                chan = new_chan            
 
             chan.light_group = chan_light_group
             chan.name = chan_name
-            update_displays_func(None, context)
 
         return{'FINISHED'}        
 
@@ -175,7 +161,6 @@ class PRMAN_OT_Renderman_layer_add_channel(Operator):
             chan_ptr = aov.dspy_channels.add()  
             aov.dspy_channels_index = len(aov.dspy_channels)-1   
             chan_ptr.dspy_chan_idx = chan_idx
-            update_displays_func(None, context)
 
         return{'FINISHED'}       
 
@@ -191,7 +176,6 @@ class PRMAN_OT_Renderman_layer_delete_channel(Operator):
             aov = rm_rl.custom_aovs[rm_rl.custom_aov_index]
             idx = aov.dspy_channels_index
             chan = aov.dspy_channels.remove(aov.dspy_channels_index)  
-            update_displays_func(None, context)
 
         return{'FINISHED'}         
 
@@ -272,10 +256,10 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         # denoise options
         row = col.row()
         row.prop(item, 'denoise')
-        if rm_rl and rm_rl.custom_aov_index != 0:
-            # if the beauty/variance doesn't have denoise enable, disable
-            # the option
-            row.enabled = rm_rl.custom_aovs[0].denoise
+        if rm.use_legacy_denoiser:
+            row = col.row()
+            row.enabled = item.denoise
+            row.prop(item, 'denoise_mode')
 
         row = col.row()
         row.label(text='')
@@ -334,6 +318,10 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             layout.separator()
             row = col.row()
             row.prop(channel, "chan_pixelfilter")
+            row = col.row()
+            if channel.chan_pixelfilter != 'default':
+                row.prop(channel, "chan_pixelfilter_x", text="Size X")
+                row.prop(channel, "chan_pixelfilter_y", text="Size Y")
             layout.separator()
 
             row = col.row()
@@ -435,7 +423,6 @@ class PRMAN_OT_revert_renderman_aovs(bpy.types.Operator):
         rm_rl.custom_aovs.clear()     
         rm_rl.dspy_channels.clear()    
         rm_rl.use_renderman = False
-        update_displays_func(None, context)
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -505,7 +492,6 @@ class PRMAN_OT_add_renderman_aovs(bpy.types.Operator):
                     chan_ptr = aov_setting.dspy_channels.add()                                   
                     chan_ptr.name = name
                     chan_ptr.dspy_chan_idx = len(rm_rl.dspy_channels)-1
-        update_displays_func(None, context)
 
         return {'FINISHED'}
 
@@ -569,9 +555,8 @@ class PRMAN_OT_RenderMan_Add_Dspy_Template(bpy.types.Operator):
             chan_ptr.name = chan
             aov_setting.dspy_channels_index = len(aov_setting.dspy_channels)-1  
             chan_ptr.dspy_chan_idx = chan_idx
-
-        update_displays_func(None, context)
-        
+                      
+     
         return {"FINISHED"}        
 
 class PRMAN_OT_Renderman_Displays_Reload(Operator):

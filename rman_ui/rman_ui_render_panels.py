@@ -132,7 +132,7 @@ class RENDER_PT_renderman_world_integrators(PRManButtonsPanel, Panel):
         rm = world.renderman
         nt = world.node_tree
 
-        draw_nodes_properties_ui(layout, context, nt, input_name='integrator_in', output_node_type='integrators_output', single_node_view=False)
+        draw_nodes_properties_ui(layout, context, nt, input_name='integrator_in', output_node_type='integrators_output')
 
 class RENDER_PT_renderman_world_display_filters(PRManButtonsPanel, Panel):
     bl_label = "Display Filters"

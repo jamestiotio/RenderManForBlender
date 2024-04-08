@@ -417,15 +417,10 @@ class NODE_OT_rman_node_create(bpy.types.Operator):
     def execute(self, context):
         nt = getattr(context, 'nodetree', None)
         node = getattr(context, 'node', None)
-        socket = getattr(context, 'socket', None)  
-        space_data = getattr(context, 'space_data', None)         
+        socket = getattr(context, 'socket', None)           
         input_node = None
         if nt and socket:
             input_node = socket_node_input(nt, socket)
-
-        if not nt and space_data and space_data.type == 'NODE_EDITOR':
-            # checek the space we are in for the nodetree
-            nt = context.space_data.edit_tree
 
         if input_node is None:
             rman_node_name = rman_bl_nodes.__BL_NODES_MAP__.get(self.node_name)
@@ -438,19 +433,8 @@ class NODE_OT_rman_node_create(bpy.types.Operator):
             else:
                 bpy.ops.node.add_node(type=rman_node_name, use_transform=True)
 
-            if nt:
-                if nt.id_data == context.scene.world.node_tree:
-                    context.scene.world.update_tag()                
-                else:
-                    active_material = find_material_from_nodetree(nt)
-                    if active_material:
-                        try:
-                            newnode.update_mat(active_material)
-                        except:
-                            pass                
-
         # replace input node with a new one
-        elif nt:
+        else:
             rman_node_name = rman_bl_nodes.__BL_NODES_MAP__.get(self.node_name)
             newnode = nt.nodes.new(rman_node_name)
             newnode.select = False
@@ -459,15 +443,12 @@ class NODE_OT_rman_node_create(bpy.types.Operator):
                 old_node = input.links[0].from_node
                 link_node(nt, newnode, socket)
                 newnode.location = old_node.location
-            if nt.id_data == context.scene.world.node_tree:
-                context.scene.world.update_tag()                
-            else:                
-                active_material = find_material_from_nodetree(nt)
-                if active_material:
-                    try:
-                        newnode.update_mat(active_material)
-                    except:
-                        pass
+            active_material = find_material_from_nodetree(nt)
+            if active_material:
+                try:
+                    newnode.update_mat(active_material)
+                except:
+                    pass
             #nt.nodes.remove(old_node)
         return {'FINISHED'}
 
@@ -497,15 +478,6 @@ class NODE_OT_rman_node_connect_existing(bpy.types.Operator):
         if input_node is None:
             newnode.select = False
             link_node(nt, newnode, socket)
-            if nt.id_data == context.scene.world.node_tree:
-                context.scene.world.update_tag()
-            else:
-                active_material = find_material_from_nodetree(nt)
-                if active_material:
-                    try:
-                        newnode.update_mat(active_material)
-                    except:
-                        pass            
 
         # replace input node with a new one
         else:
@@ -611,14 +583,10 @@ class NODE_OT_rman_node_change_output(bpy.types.Operator):
 class NODE_OT_rman_refresh_osl_shader(bpy.types.Operator):
     bl_idname = "node.rman_refresh_osl_shader"
     bl_label = "Refresh OSL Node"
-    bl_description = "Refreshes the OSL node."
+    bl_description = "Refreshes the OSL node This takes a second!!"
 
     def invoke(self, context, event):
-        err = context.node.RefreshNodes(context)
-        if err:
-            self.report({'ERROR'}, err)
-        else:
-            self.report({'INFO'}, "PxrOSL node finished refreshing.")
+        context.node.RefreshNodes(context)
         return {'FINISHED'}
 
 class NODE_OT_rman_open_close_link(bpy.types.Operator):

@@ -86,18 +86,15 @@ def get_token_blender_file_path(p):
     return pout.replace('\\', '/')
  
 def filesystem_path(p):
-    #Resolve a relative Blender path to a real filesystem path
-    pout = p
-    if pout.startswith('//'):
-        pout = bpy.path.abspath(pout)
-
-    if os.path.isabs(pout):
-        pout = os.path.realpath(pout)
-
-    return pout.replace('\\', '/')
+	#Resolve a relative Blender path to a real filesystem path
+	if p.startswith('//'):
+		pout = bpy.path.abspath(p)
+	else:
+		pout = os.path.realpath(p)
+	
+	return pout.replace('\\', '/')
 
 def get_real_path(path):
-    # This looks weird in that we're simply returning filesystem_path
-    # However, originally the code for these two functions were slightly different
-    # There's too many places that get_real_path is called, so just leave this as is
-    return filesystem_path(path)
+    if os.path.isabs(path):
+        return os.path.realpath(filesystem_path(path))
+    return path
