@@ -83,8 +83,8 @@ class RmanCameraTranslator(RmanTranslator):
         rman_sg_camera = RmanSgCamera(self.rman_scene, sg_group, db_name)
         rman_sg_camera.sg_camera_node = self.rman_scene.sg_scene.CreateCamera('%s-CAMERA' % db_name)  
         sg_group.AddChild(rman_sg_camera.sg_camera_node)      
-        ob = self.update_viewport_resolution(rman_sg_camera)
-        self.update_viewport_cam(ob, rman_sg_camera)
+        self.update_viewport_resolution(rman_sg_camera)
+        self.update_viewport_cam(None, rman_sg_camera)
         self._set_orientation(rman_sg_camera)
         self._update_viewport_transform(rman_sg_camera)  
         return rman_sg_camera        
@@ -398,8 +398,8 @@ class RmanCameraTranslator(RmanTranslator):
             options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_CropWindow, crop_window, 4)
             self.rman_scene.sg_scene.SetOptions(options)
             rman_sg_camera.sg_camera_node.SetProperties(prop)
-            return ob
-        return None
+            return True
+        return False
 
     def update_viewport_cam(self, ob, rman_sg_camera, force_update=False):
         region = self.rman_scene.context.region
@@ -419,6 +419,10 @@ class RmanCameraTranslator(RmanTranslator):
 
         bl_cam_props = deepcopy(rman_sg_camera.bl_cam_props)
         if rman_sg_camera.bl_cam_props.view_perspective == 'CAMERA':
+            if ob is None:
+                ob = self.rman_scene.bl_scene.camera    
+                if self.rman_scene.context.space_data.use_local_camera:
+                    ob = self.rman_scene.context.space_data.camera                
             ob = ob.original
             cam = ob.data
             rman_sg_camera.bl_camera = ob
@@ -478,6 +482,8 @@ class RmanCameraTranslator(RmanTranslator):
                     rman_sg_camera.rman_focus_object = None                    
 
         elif rman_sg_camera.bl_cam_props.view_perspective ==  'PERSP': 
+            if ob is None:
+                ob = self.rman_scene.context.space_data.camera 
             cam = None
             if ob:
                 cam = ob.data
@@ -494,7 +500,7 @@ class RmanCameraTranslator(RmanTranslator):
                 region_data = self.rman_scene.context.region_data
                 vmat_inv = region_data.view_matrix.inverted()
                 pmat = region_data.perspective_matrix @ vmat_inv
-                fov = 360.0 * math.atan(1.0/pmat[1][1]) / math.pi
+                fov = 2.0 * math.atan(1.0/pmat[1][1]) * 180.0 / math.pi
 
             bl_cam_props.rman_fov = fov
 
