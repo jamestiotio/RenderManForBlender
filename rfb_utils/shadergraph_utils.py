@@ -793,7 +793,7 @@ def find_integrator_node(world):
         (RendermanIntegratorNode) - the integrator ShadingNode
     '''
     rm = world.renderman
-    if not world.renderman.use_renderman_node:
+    if not world.use_nodes:
         return None
     
     output = find_node(world, 'RendermanIntegratorsOutputNode')
@@ -814,7 +814,7 @@ def find_displayfilter_nodes(world):
         (list) - list of display filter nodes
     '''  
     df_nodes = []      
-    if not world.renderman.use_renderman_node:
+    if not world.use_nodes:
         return df_nodes 
 
     output = find_node(world, 'RendermanDisplayfiltersOutputNode')
@@ -836,7 +836,7 @@ def find_samplefilter_nodes(world):
         (list) - list of sample filter nodes
     '''    
     sf_nodes = []
-    if not world.renderman.use_renderman_node:
+    if not world.use_nodes:
         return sf_nodes 
 
     output = find_node(world, 'RendermanSamplefiltersOutputNode')
