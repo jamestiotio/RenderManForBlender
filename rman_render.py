@@ -1246,6 +1246,8 @@ class RmanRender(object):
 
         self.rman_running = True  
         bl_scene = context.scene
+        if self._do_prman_render_begin():
+            return False              
         if export_all_frames:
             original_frame = bl_scene.frame_current
             rfb_log().debug("Writing to RIB...")             
@@ -1298,6 +1300,8 @@ class RmanRender(object):
             self.rman_scene.reset()  
 
         self.rman_running = False        
+        self.del_bl_engine()
+        self._do_prman_render_end()        
         return True                 
 
     def stop_render(self, stop_draw_thread=True):
