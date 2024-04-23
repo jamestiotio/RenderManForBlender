@@ -436,7 +436,7 @@ class RendermanNodeSocketFloat(NodeSocketFloat, RendermanSocket):
     renderman_type: StringProperty(default='float')
     is_array: BoolProperty(default=False)
     array_elem: IntProperty(default=-1)
-    default_value: IntProperty(update=update_func)
+    default_value: FloatProperty(update=update_func)
         
     @classmethod
     def draw_color_simple(cls):
