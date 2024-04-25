@@ -7,7 +7,7 @@ from ..rfb_utils import draw_utils
 from ..rfb_utils.property_utils import BlPropInfo, __LOBES_ENABLE_PARAMS__
 from ..rfb_utils import filepath_utils
 from ..rman_config import __RFB_CONFIG_DICT__
-from ..rman_constants import RFB_FLOAT3, RFB_SHADER_ALLOWED_CONNECTIONS
+from ..rman_constants import RFB_FLOAT3, RFB_SHADER_ALLOWED_CONNECTIONS, __RMAN_SOCKET_MAP__
 from .. import rman_bl_nodes
 from .. import rfb_icons
 from .. import rman_render
@@ -707,7 +707,14 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             if socket.is_linked:
                 links[input_name] = {"from_node": socket.links[0].from_node, "from_socket": socket.links[0].from_socket}
             else:
-                values[input_name] = deepcopy(socket.default_value)
+                if isinstance(socket.default_value, bpy.types.bpy_prop_array):
+                    # deecopy seems to fail on bpy_prop_array types, so manually copy
+                    val = list()
+                    for v in socket.default_value:
+                        val.append(v)
+                    values[input_name] = val
+                else:
+                    values[input_name] = deepcopy(socket.default_value)
         for input_name, socket in self.outputs.items():
             if socket.is_linked:
                 links[input_name] = {"from_node": socket.links[0].to_node, "from_socket": socket.links[0].to_socket}
@@ -722,7 +729,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             prop_type = shader_meta[prop_name]["type"]
             if shader_meta[prop_name]["IO"] == "out":
                 socket = self.outputs.new(
-                    rman_socket_utils.__RMAN_SOCKET_MAP__[prop_type], prop_name)
+                    __RMAN_SOCKET_MAP__[prop_type], prop_name)
                 if prop_name in links and socket.hide is False:
                     link = links[prop_name]
                     self.id_data.links.new(socket, link['from_socket'])
@@ -734,15 +741,22 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                         prop_default = float(prop_default)
                     elif prop_type == "int":
                         prop_default = int(float(prop_default))
+                    elif prop_type == "color":
+                        # error checking on len(prop_default)
+                        # we want len(prop_default) = 4
+                        if len(prop_default) < 4:
+                            prop_default += (4-len(prop_default)) * (1.0,)
+                        elif len(prop_default) > 4:
+                            prop_default = prop_default[:4]
 
                 if prop_type == "matrix":
-                    self.inputs.new(rman_socket_utils.__RMAN_SOCKET_MAP__["struct"], prop_name, prop_name)
+                    self.inputs.new(__RMAN_SOCKET_MAP__["struct"], prop_name, prop_name)
                 elif prop_type == "void":
                     pass
                 elif 'lockgeom' in shader_meta[prop_name] and shader_meta[prop_name]['lockgeom'] == 0:
                     pass
                 else:
-                    input = self.inputs.new(rman_socket_utils.__RMAN_SOCKET_MAP__[shader_meta[prop_name]["type"]],
+                    input = self.inputs.new(__RMAN_SOCKET_MAP__[shader_meta[prop_name]["type"]],
                                             prop_name, identifier=prop_name)
                     if prop_default:
                         input.default_value = prop_default

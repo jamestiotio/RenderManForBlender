@@ -505,9 +505,9 @@ class RmanMeshTranslator(RmanTranslator):
         if rman_sg_mesh.is_multi_material:
             material_ids = _get_material_ids(ob, mesh)
             i = 1
-            for mat_id, faces in \
-                _get_mats_faces_(nverts, material_ids).items():
-
+            mat_faces_dict = _get_mats_faces_(nverts, material_ids)
+            min_idx = min(mat_faces_dict.keys()) # find the minimun material index
+            for mat_id, faces in mat_faces_dict.items():
                 # If the face has a mat index that is higher than the number of
                 # material slots, use the last material. This is what
                 # Eevee/Cycles does.
@@ -519,7 +519,7 @@ class RmanMeshTranslator(RmanTranslator):
                     continue
                 sg_material = self.rman_scene.rman_materials.get(mat.original, None)
 
-                if mat_id == 0:
+                if mat_id == min_idx:
                     primvar.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_shade_faceset, faces, len(faces))
                     scenegraph_utils.set_material(sg_node, sg_material.sg_node, sg_material, mat=mat, ob=ob)
                 else:                

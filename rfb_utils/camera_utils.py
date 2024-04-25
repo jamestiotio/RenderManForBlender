@@ -14,7 +14,11 @@ def render_get_aspect_(r, camera=None, x=-1, y=-1):
         xratio = xres * r.pixel_aspect_x / 200.0
         yratio = yres * r.pixel_aspect_y / 200.0
 
-    if camera is None or camera.type != 'PERSP':
+    if camera is None:
+        # If we don't have a camera, always use HORIZONTAL
+        # This is the viewport render case, but there's no camera in the scene
+        fit = 'HORIZONTAL'
+    elif camera.type != 'PERSP':
         fit = 'AUTO'
     else:
         fit = camera.sensor_fit
