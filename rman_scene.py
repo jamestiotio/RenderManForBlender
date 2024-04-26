@@ -24,6 +24,7 @@ from .rman_translators.rman_emitter_translator import RmanEmitterTranslator
 from .rman_translators.rman_empty_translator import RmanEmptyTranslator
 from .rman_translators.rman_alembic_translator import RmanAlembicTranslator
 from .rman_translators.rman_hair_curves_translator import RmanHairCurvesTranslator
+from .rman_translators.rman_pointcloud_translator import RmanPointCloudTranslator
 
 # utils
 from .rfb_utils import object_utils
@@ -171,6 +172,7 @@ class RmanScene(object):
         self.rman_translators['BRICKMAP'] = RmanBrickmapTranslator(rman_scene=self)
         self.rman_translators['ALEMBIC'] = RmanAlembicTranslator(rman_scene=self)
         self.rman_translators['CURVES'] = RmanHairCurvesTranslator(rman_scene=self)
+        self.rman_translators['POINTCLOUD'] = RmanPointCloudTranslator(rman_scene=self)
 
     def _find_renderman_layer(self):
         self.rm_rl = None
