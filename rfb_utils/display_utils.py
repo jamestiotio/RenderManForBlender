@@ -131,7 +131,9 @@ def _add_stylized_channels(dspys_dict, dspy_drv, rman_scene, expandTokens):
                 chan_src = settings['channelSource']
                 chan_type = settings['channelType']
                 d[u'channelSource'] = {'type': u'string', 'value': chan_src}
-                d[u'channelType'] = { 'type': u'string', 'value': chan_type}                  
+                d[u'channelType'] = { 'type': u'string', 'value': chan_type}       
+                if 'filter'in settings:
+                    d[u'filter'] = {'type': u'string', 'value': settings['filter']}                           
                 dspys_dict['channels'][chan] = d
             dspy_params['displayChannels'].append(chan)
 
@@ -159,7 +161,9 @@ def _add_stylized_channels(dspys_dict, dspy_drv, rman_scene, expandTokens):
                 chan_src = settings['channelSource']
                 chan_type = settings['channelType']
                 d[u'channelSource'] = {'type': u'string', 'value': chan_src}
-                d[u'channelType'] = { 'type': u'string', 'value': chan_type}                  
+                d[u'channelType'] = { 'type': u'string', 'value': chan_type}      
+                if 'filter'in settings:
+                    d[u'filter'] = {'type': u'string', 'value': settings['filter']}                                                       
                 dspys_dict['channels'][chan] = d
             dspy_params['displayChannels'].append(chan)
 
@@ -201,6 +205,8 @@ def _add_denoiser_channels(dspys_dict, dspy_params, rman_scene):
             d[u'channelType'] = { 'type': u'string', 'value': settings['channelType']}
             if 'statistics' in settings:
                 d[u'statistics'] = { 'type': u'string', 'value': settings['statistics']}
+            if 'filter'in settings:
+                d[u'filter'] = {'type': u'string', 'value': settings['filter']}
             dspys_dict['channels'][chan] =  d  
 
         dspys_dict['displays']['beauty']['params']['displayChannels'].append(chan)            
