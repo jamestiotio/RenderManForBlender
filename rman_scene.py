@@ -625,7 +625,16 @@ class RmanScene(object):
             else:       
                 rman_sg_node.instances[group_db_name] = rman_sg_group                   
 
-        return rman_sg_group        
+        return rman_sg_group       
+
+    def update_instance_attributes(self, translator, rman_sg_node, ob_eval, ob_inst, remove=False): 
+        # we want to export attributes for the instance
+        # as we still want the instance to be able override attributes        
+        attrs = rman_sg_node.sg_node.GetAttributes()
+        translator.export_object_attributes_attrs(ob_eval, attrs, remove=remove)
+        rman_sg_node.sg_node.SetAttributes(attrs)            
+        # export instance attributes
+        translator.export_instance_attributes(ob_eval, rman_sg_node, ob_inst)         
 
     def export_instance(self, ob_eval, ob_inst, rman_sg_node, rman_type, instance_parent, psys):
         rman_group_translator = self.rman_translators['GROUP']
@@ -637,8 +646,7 @@ class RmanScene(object):
         # Object attrs
         translator =  self.rman_translators.get(rman_type, None)
         if translator:
-            # export instance attributes
-            translator.export_instance_attributes(ob_eval, rman_sg_group, ob_inst)       
+            self.update_instance_attributes(translator, rman_sg_group, ob_eval, ob_inst)
 
         # Add any particles necessary
         if rman_sg_node.rman_sg_particle_group_node:
@@ -655,7 +663,11 @@ class RmanScene(object):
                 self.attach_material(ob_eval, rman_sg_group)        
         elif psys:
             self.attach_particle_material(psys.settings, instance_parent, ob_eval, rman_sg_group)
-            rman_sg_group.bl_psys_settings = psys.settings.original            
+            rman_sg_group.bl_psys_settings = psys.settings.original     
+        elif ob_eval.renderman.rman_material_override:
+            self.attach_material(ob_eval, rman_sg_group) 
+        else:
+            rman_sg_group.sg_node.SetMaterial(None)                   
 
         if is_empty_instancer:
             # if this is an empty instancer, add as a child to the empty instancer
