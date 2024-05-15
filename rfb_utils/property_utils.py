@@ -1,6 +1,7 @@
 from . import string_utils
 from . import prefs_utils
 from . import osl_utils
+from . import filepath_utils
 from ..rman_constants import __RMAN_EMPTY_STRING__, __RESERVED_BLENDER_NAMES__, RFB_FLOAT3
 from ..rfb_logger import rfb_log
 from bpy.props import *
@@ -696,7 +697,7 @@ def set_dspymeta_params(node, prop_name, params):
 def set_pxrosl_params(node, rman_sg_node, params, ob=None, mat_name=None):
 
     prop_meta = getattr(node, 'prop_meta', dict())
-    shader_path = node.shadercode
+    shader_path = filepath_utils.get_real_path(node.shadercode)
     already_read = False
     for input_name, input in node.inputs.items():
         if input_name not in prop_meta and already_read == False: 
