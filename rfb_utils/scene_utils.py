@@ -119,6 +119,7 @@ class BlAttribute:
                 rman_attr.values = values.tolist()                
             
             if rman_attr:
+                rman_attr.rman_name = string_utils.sanitize_node_name(rman_attr.rman_name)
                 attrs_dict[attr.name] = rman_attr     
                 detail = detail_map.get(len(attr.data), detail_default)                
                 rman_attr.rman_detail = detail
